@@ -1,17 +1,17 @@
 [project]
-name = "heimdall"
-version = "1.0.0"
-description = "Heterogeneous Memory Benchmark Suite"
-authors = [{ name = "Zixuan Wang", email = "zxwang42@gmail.com" }]
-license = { text = "MIT" }
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = []
+authors         = [{ name = "Zixuan Wang", email = "zxwang42@gmail.com" }]
+dependencies    = ["typer (>=0.15.1,<0.16.0)", "loguru (>=0.7.3,<0.8.0)"]
+description     = "Heterogeneous Memory Benchmark Suite"
+license         = { text = "MIT" }
+name            = "heimdall"
+readme          = "README.md"
+requires-python = ">=3.12,<4.0"
+version         = "1.0.0"
 
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+requires      = ["poetry-core>=2.0.0,<3.0.0"]
 
 [tool.isort]
 profile = "black"
