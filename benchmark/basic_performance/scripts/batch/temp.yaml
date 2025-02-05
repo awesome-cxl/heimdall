@@ -1,0 +1,10 @@
+access_order: 0
+block_num: 1
+core_id: 0
+dimm_start_addr_phys: '0x200000000'
+dimm_test_size: '0x840000000'
+node_id: 0
+repeat: 32
+stride_size: 64
+test_size: 34359738368
+use_flush: 0
