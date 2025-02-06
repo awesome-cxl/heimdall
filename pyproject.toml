@@ -1,5 +1,5 @@
 [project]
-authors         = [{ name = "Zixuan Wang", email = "zxwang42@gmail.com" }]
+authors         = [{ name = "Zixuan Wang", email = "zxwang42@gmail.com" }, { name = "Jangseon Park", email = "jap036@ucsd.com" }, { name = "Luyi Li", email = "lul014@ucsd.edu" }]
 dependencies    = ["typer (>=0.15.1,<0.16.0)", "loguru (>=0.7.3,<0.8.0)", "invoke (>=2.2.0,<3.0.0)", "requests (>=2.32.3,<3.0.0)", "python-dotenv (>=1.0.1,<2.0.0)", "pyyaml (>=6.0.2,<7.0.0)", "matplotlib (>=3.10.0,<4.0.0)", "pandas (>=2.2.3,<3.0.0)", "seaborn (>=0.13.2,<0.14.0)"]
 description     = "Heterogeneous Memory Benchmark Suite"
 license         = { text = "MIT" }
