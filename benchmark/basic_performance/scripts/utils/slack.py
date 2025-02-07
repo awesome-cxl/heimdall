@@ -65,7 +65,7 @@ def slack_notice(slack_url, message):
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to send Slack message: {e}")
+        logger.warning(f"Failed to send Slack message: {e}")
 
 
 def slack_notice_msg(message):
