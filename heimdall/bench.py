@@ -52,8 +52,10 @@ def all(bench_name: str, config: str):
     bench = scripts[bench_name]
     typer.echo(f"Running all {bench_name} benchmark")
     try:
+        bench.install(config)
         bench.build(config)
         bench.run(config)
+        bench.plot(config)
     except UnexpectedExit as e:
         print(f"Error: {e}")
         raise typer.Exit()
