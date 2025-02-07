@@ -25,19 +25,20 @@
 #
 
 import os
+import platform
 import re
 import socket
-import subprocess
 from datetime import datetime
-import platform
+
+from invoke import run
+from loguru import logger
 
 
 def find_file_with_prefix(task_number_prefix):
     directory = os.path.join(os.path.dirname(__file__), "../batch")
-    print(f"directory: {directory}")
     try:
         if not os.path.isdir(directory):
-            print(f"Error: Directory '{directory}' does not exist.")
+            logger.error(f"Error: Directory '{directory}' does not exist.")
             return []
 
         pattern = re.compile(rf"^{task_number_prefix}.*")
@@ -45,48 +46,40 @@ def find_file_with_prefix(task_number_prefix):
         matching_files = [f for f in os.listdir(directory) if pattern.match(f)]
 
         if len(matching_files) == 0:
-            print(f"No files found with prefix '{task_number_prefix}'")
+            logger.error(f"No files found with prefix '{task_number_prefix}'")
             return []
 
         if len(matching_files) > 1:
-            print(f"Multiple files found with prefix '{task_number_prefix}'")
+            logger.error(f"Multiple files found with prefix '{task_number_prefix}'")
             return []
 
         return matching_files[0]
 
     except Exception as e:
-        print(f"Error: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         return []
 
 
 def check_task_continuous(task_file):
     while True:
-        print(f"Task file: {task_file}")
+        logger.info(f"Task file: {task_file}")
         yn = input("Start to run them [y/n]: ").strip().lower()
         if yn in ["y", "yes"]:
             return True
         elif yn in ["n", "no"]:
-            print("Exiting...")
+            logger.info("Exiting...")
             exit()
         else:
-            print("Invalid input")
+            logger.error("Invalid input")
             exit()
 
 
 def get_task_id(task_prefix):
     current_time = datetime.now().strftime("%m-%d-%Y")
-    try:
-        git_head = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
-            )
-            .decode()
-            .strip()
-        )
-    except subprocess.CalledProcessError:
-        git_head = "unknown"
+    result = run("git rev-parse --short HEAD", hide=True, warn=True)
+    git_head = result.stdout.strip() if result.ok else "unknown"
     hostname = socket.gethostname()
-    return f"tasks-{current_time}-{task_prefix}-{git_head}-{hostname}"
+    return f"basic-{current_time}-{task_prefix}-{git_head}-{hostname}"
 
 
 def get_unique_task_id(base_directory, task_prefix):
@@ -102,18 +95,22 @@ def get_unique_task_id(base_directory, task_prefix):
 
 
 def get_task_directory(task_prefix):
-    base_dir = os.path.join(os.path.dirname(__file__), "../../../../results/tasks")
+    base_dir = os.path.join(
+        os.path.dirname(__file__),
+        f"../../../../results/basic_performance/{task_prefix}",
+    )
     if not os.path.isdir(base_dir):
         os.makedirs(base_dir)
     return get_unique_task_id(base_dir, task_prefix)
 
+
 def get_architecture():
     arch = platform.machine().lower()
-    print(f"Architecture is {arch}")
+    logger.info(f"Architecture is {arch}")
     if arch in ["x86_64", "amd64"]:
         return "x86"
     elif arch in ["aarch64"]:
         return "arm"
     else:
-        print(f"unknown architecture: {arch}")
+        logger.error(f"unknown architecture: {arch}")
         exit(1)

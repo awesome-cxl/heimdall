@@ -36,8 +36,12 @@ from dotenv import load_dotenv
 # Slack=1
 # SlackURL=your_slack_webhook_url
 # HOSTNAME=your_host_name
+from loguru import logger
 
-load_dotenv(dotenv_path="./utils/env_files/self.env")
+path = f"{os.path.dirname(os.path.realpath(__file__))}/../../env_files/self.env"
+load_dotenv(
+    dotenv_path=path,
+)
 SLACK_ENABLED = int(os.getenv("Slack", 0))
 SLACK_URL = os.getenv("SlackURL")
 HOST_NAME = os.getenv("HOSTNAME", "unknown_host")
@@ -45,14 +49,14 @@ HOST_NAME = os.getenv("HOSTNAME", "unknown_host")
 
 def slack_notice(slack_url, message):
     if not SLACK_ENABLED:
-        print(f"Skip sending Slack message: [{message}]")
+        logger.info(f"Skip sending Slack message: [{message}]")
         return
 
     if not slack_url or not message:
-        print("slack_notice requires both slack_url and message.")
+        logger.error("slack_notice requires both slack_url and message.")
         sys.exit(1)
 
-    print(f"Sending Slack message -- {message}")
+    logger.info(f"Sending Slack message -- {message}")
     try:
         response = requests.post(
             slack_url,
@@ -61,7 +65,7 @@ def slack_notice(slack_url, message):
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        print(f"Failed to send Slack message: {e}")
+        logger.error(f"Failed to send Slack message: {e}")
 
 
 def slack_notice_msg(message):
@@ -74,7 +78,7 @@ def slack_notice_beg(message):
 
 def slack_notice_progress(iteration, total):
     if iteration is None or total is None:
-        print("slack_notice_progress requires iteration and total.")
+        logger.error("slack_notice_progress requires iteration and total.")
         sys.exit(1)
 
     progress = round(100 * iteration / total, 2)

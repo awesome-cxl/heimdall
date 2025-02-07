@@ -25,37 +25,37 @@
 #
 
 import os
-import subprocess
 import sys
+
 import typer
+from loguru import logger
+
+from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
 
 app = typer.Typer()
+
 
 def build_bw_latency(machine_type, build_type):
 
     if build_type == "release" or build_type == "designtest":
-        print(f"Building {build_type} for {machine_type} machine")
+        logger.info(f"Building {build_type} for {machine_type} machine")
         build_scripts_path = os.path.join(
             os.path.dirname(__file__),
             f"../../build/bw_latency_test/{build_type}/build.py",
         )
     else:
-        print("Error: Invalid build type")
+        logger.error("Error: Invalid build type")
         sys.exit(1)
 
     if not os.path.isfile(build_scripts_path):
-        print("Error: Build script not found")
+        logger.error("Error: Build script not found")
         sys.exit(1)
 
     if machine_type == "x86" or machine_type == "arm" or machine_type == "mockup":
-        try:
-            print(f"Running build script for {machine_type} machine")
-            subprocess.check_call(["python3", build_scripts_path, "-m", machine_type])
-        except subprocess.CalledProcessError as e:
-            print(f"Error: Build failed with error code {e.returncode}")
-            sys.exit(1)
+        logger.info(f"Running build script for {machine_type} machine")
+        run_as_sudo(f"python3 {build_scripts_path} -m {machine_type}")
     else:
-        print("Error: Invalid machine type")
+        logger.error("Error: Invalid machine type")
         sys.exit(1)
 
 
@@ -64,15 +64,11 @@ def build_kernel(build_type):
         os.path.dirname(__file__), "../../build/cache_test/module/build.py"
     )
     if not os.path.isfile(build_scripts_path):
-        print("Error: Build script not found")
+        logger.error("Error: Build script not found")
         sys.exit(1)
-    try:
-        print(f"Building {build_type} for kernel")
-        subprocess.check_call(["python3", build_scripts_path, "clean"])
-        subprocess.check_call(["python3", build_scripts_path, "build"])
-    except subprocess.CalledProcessError as e:
-        print(f"Error: Build failed with error code {e.returncode}")
-        sys.exit(1)
+    logger.info(f"Building {build_type} for kernel")
+    run_as_sudo(f"python3 {build_scripts_path} clean")
+    run_as_sudo(f"python3 {build_scripts_path} build")
 
 
 def build_cache_user(build_type):
@@ -80,18 +76,14 @@ def build_cache_user(build_type):
         os.path.dirname(__file__), "../../build/cache_test/user_space/build.py"
     )
     if not os.path.isfile(build_scripts_path):
-        print("Error: Build script not found")
+        logger.error("Error: Build script not found")
         sys.exit(1)
-    try:
-        print(f"Building {build_type} for cache user")
-        subprocess.check_call(["python3", build_scripts_path])
-    except subprocess.CalledProcessError as e:
-        print(f"Error: Build failed with error code {e.returncode}")
-        sys.exit(1)
+    logger.info(f"Building {build_type} for cache user")
+    run_as_sudo(f"python3 {build_scripts_path}")
 
 
 def build_cache(build_type):
-    print("start build cache")
+    logger.info("start build cache")
     build_kernel(build_type)
     build_cache_user(build_type)
 
@@ -102,5 +94,5 @@ def build(machine_type, build_type, task_id):
     elif task_id in ["200"]:
         build_cache(build_type)
     else:
-        print("Error: Invalid task id")
+        logger.error("Error: Invalid task id")
         sys.exit(1)

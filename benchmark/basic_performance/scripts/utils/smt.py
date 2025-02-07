@@ -24,36 +24,18 @@
 # SOFTWARE.
 #
 
-import sys
+from loguru import logger
+
+from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
 
 
 def turn_off_smt():
     smt_control_path = "/sys/devices/system/cpu/smt/control"
-
-    try:
-        print("Turning off SMT")
-        with open(smt_control_path, "w") as file:
-            file.write("off\n")
-    except FileNotFoundError:
-        print(f"Error: The file '{smt_control_path}' does not exist.")
-        sys.exit(1)
-    except PermissionError:
-        print(f"Error: Permission denied when accessing '{smt_control_path}'.")
-        print("Try running the script as root or using sudo.")
-        sys.exit(1)
+    logger.info("Turning off SMT")
+    run_as_sudo(f"echo off | tee {smt_control_path}")
 
 
 def turn_on_smt():
     smt_control_path = "/sys/devices/system/cpu/smt/control"
-
-    try:
-        print("Turning on SMT")
-        with open(smt_control_path, "w") as file:
-            file.write("on\n")
-    except FileNotFoundError:
-        print(f"Error: The file '{smt_control_path}' does not exist.")
-        sys.exit(1)
-    except PermissionError:
-        print(f"Error: Permission denied when accessing '{smt_control_path}'.")
-        print("Try running the script as root or using sudo.")
-        sys.exit(1)
+    logger.info("Turning on SMT")
+    run_as_sudo(f"echo on | tee {smt_control_path}")

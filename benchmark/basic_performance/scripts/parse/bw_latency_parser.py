@@ -29,6 +29,8 @@ import os
 import re
 from collections import defaultdict
 
+from loguru import logger
+
 
 def parse_result_logs(base_dir):
     parsed_data = defaultdict(
@@ -92,7 +94,7 @@ def parse_result_logs(base_dir):
                         }
                     )
                 else:
-                    print(f"Skipping log file due to missing data: {log_path}")
+                    logger.error(f"Skipping log file due to missing data: {log_path}")
 
     for device_type in parsed_data:
         for access_type in parsed_data[device_type]:
@@ -147,7 +149,7 @@ def save_results_to_csv(data, output_file):
                                 "Measured Latency (ns)": test["Measured Latency (ns)"],
                             }
                             writer.writerow(row)
-    print(f"The result is saved in {output_file}")
+    logger.info(f"The result is saved in {output_file}")
 
 
 def parse_bw_latency(base_dir):

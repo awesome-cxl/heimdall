@@ -26,36 +26,21 @@
 
 import glob
 import os
-import subprocess
+
+from loguru import logger
+
+from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
 
 
 def set_cpu_boost(mode):
-    if mode == "performance":
-        print("cpu boost is enabled")
-        for file_path in glob.glob(
-            "/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
-        ):
-            print(f"Set performance mode for {file_path}")
-            try:
-                subprocess.run(
-                    ["sudo", "bash", "-c", f"echo 'performance' > {file_path}"],
-                    check=True,
-                )
-            except subprocess.CalledProcessError as e:
-                print(f"Failed to set performance mode for {file_path}: {e}")
-    elif mode == "powersave":
-        print("cpu boost is disabled")
-        for file_path in glob.glob(
-            "/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
-        ):
-            print(f"Set performance mode for {file_path}")
-            try:
-                subprocess.run(
-                    ["sudo", "bash", "-c", f"echo 'powersave' > {file_path}"],
-                    check=True,
-                )
-            except subprocess.CalledProcessError as e:
-                print(f"Failed to set performance mode for {file_path}: {e}")
+    if mode not in ["performance", "powersave"]:
+        logger.error(f"Invalid mode: {mode}")
+        return
+
+    for file_path in glob.glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"):
+        logger.info(f"Set {mode} mode for {file_path}")
+        cmd = f"echo {mode} | tee {file_path}"
+        run_as_sudo(cmd)
 
 
 def control_cpu_boost():
