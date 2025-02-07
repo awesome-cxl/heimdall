@@ -27,9 +27,13 @@
 import itertools
 import os
 import socket
-import subprocess
 import sys
 import time
+
+import yaml
+from dotenv import load_dotenv
+from invoke import run
+from loguru import logger
 
 import benchmark.basic_performance.scripts.utils.aslr as aslr
 import benchmark.basic_performance.scripts.utils.batch as batchutils
@@ -37,8 +41,7 @@ import benchmark.basic_performance.scripts.utils.dvfs as dvfs
 import benchmark.basic_performance.scripts.utils.prefetch as prefetch
 import benchmark.basic_performance.scripts.utils.slack as slack
 import benchmark.basic_performance.scripts.utils.smt as smt
-import yaml
-from dotenv import load_dotenv
+from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
 
 
 def make_yaml_file(
@@ -81,16 +84,11 @@ def get_bin_path():
     return bin_path
 
 
-def run(script_path, output_path):
+def run_test(script_path, output_path):
     batchutils.make_dir(script_path, output_path)
     bin_path = get_bin_path()
-    cmd = [bin_path, "-f", script_path, "-o", output_path]
-    print("Command: ", cmd)
-    try:
-        subprocess.check_call(cmd)
-    except subprocess.CalledProcessError as e:
-        print(f"Error: Test failed with error code {e.returncode}")
-        sys.exit(1)
+    cmd = f"{bin_path} -f {script_path} -o {output_path}"
+    run_as_sudo(cmd)
     pass
 
 
@@ -112,38 +110,29 @@ def wrap_up_run(task_file):
 
 
 def check_and_remove_module(module_name):
-    result = subprocess.run(["lsmod"], capture_output=True, text=True)
+    result = run("lsmod", hide=True, warn=True)
 
     if any(line.startswith(module_name + " ") for line in result.stdout.splitlines()):
-        print(f"{module_name} module exists")
-
-        try:
-            subprocess.run(["sudo", "rmmod", module_name], check=True)
-            print(f"{module_name} module removed successfully")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to remove {module_name}: {e}")
+        logger.info(f"{module_name} module exists")
+        run_as_sudo(f"rmmod {module_name}")
+        logger.success(f"{module_name} module removed successfully")
     else:
-        print(f"{module_name} module not found")
+        logger.info(f"{module_name} module not found")
 
 
 def insert_module():
-    print("Inserting module")
+    logger.info("Inserting module")
     module_path = os.path.join(
         os.path.dirname(__file__),
         "./../../src/machine/x86/pointer_chasing/pointer_chasing.ko",
     )
     if not os.path.exists(module_path):
-        print(f"Module file {module_path} does not exist.")
+        logger.error(f"Module file {module_path} does not exist.")
         sys.exit(1)
 
-    cmd = ["sudo", "insmod", module_path]
-    print("Command: ", cmd)
+    cmd = f"insmod {module_path}"
     check_and_remove_module("pointer_chasing")
-    try:
-        subprocess.check_call(cmd)
-    except subprocess.CalledProcessError as e:
-        print(f"Error: Test failed with error code {e.returncode}")
-        sys.exit(1)
+    run_as_sudo(cmd)
     pass
 
 
@@ -152,26 +141,22 @@ def remove_kernel_file():
         os.path.dirname(__file__), "../../build/cache_test/module/build.py"
     )
     if not os.path.isfile(build_scripts_path):
-        print("Error: Build script not found")
+        logger.error("Error: Build script not found")
         sys.exit(1)
-    try:
-        subprocess.check_call(["python3", build_scripts_path, "clean"])
-    except subprocess.CalledProcessError as e:
-        print(f"Error: Test failed with error code {e.returncode}")
-        sys.exit(1)
+    run_as_sudo(f"python3 {build_scripts_path} clean")
 
 
 def load_global_env():
     host_name = socket.gethostname()
-    path = os.path.join(os.path.dirname(__file__), f"./env_files/{host_name}.env")
+    path = os.path.join(os.path.dirname(__file__), f"../../env_files/{host_name}.env")
     if not os.path.isfile(path):
-        print(f"Error: {path} not found")
-        print("Error please make machine env file first @ utils/env_files")
+        (f"Error: {path} not found")
+        logger.error("Error please make machine env file first @ utils/env_files")
         sys.exit(1)
     load_dotenv(dotenv_path=path)
-    print(f"hostname: {host_name}")
-    print(f"dimm_phys_addr: {os.getenv('dimm_physical_start_addr')}")
-    print(f"dimm_test_size: {os.getenv('dimm_test_size')}")
+    logger.info(f"hostname: {host_name}")
+    logger.info(f"dimm_phys_addr: {os.getenv('dimm_physical_start_addr')}")
+    logger.info(f"dimm_test_size: {os.getenv('dimm_test_size')}")
 
 
 def run_cache_test(script_path, output_path):
@@ -217,7 +202,7 @@ def run_cache_test(script_path, output_path):
             block_num,
             test_size,
         )
-        run(yaml_path, output_path)
+        run_test(yaml_path, output_path)
         time.sleep(1)
     wrap_up_run(script_path)
     check_and_remove_module("pointer_chasing")

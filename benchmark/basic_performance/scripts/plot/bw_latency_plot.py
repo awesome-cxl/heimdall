@@ -28,6 +28,7 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from loguru import logger
 
 
 # Define plotting functions
@@ -49,7 +50,6 @@ def plot_bandwidth_vs_latency_and_save(df, output_file, title_prefix):
     plt.grid(True)
     plt.savefig(output_file)
     plt.close()
-    print(f"file saved: {output_file}")
 
 
 def plot_threads_vs_bandwidth_and_save(df, output_file, title_prefix):
@@ -69,7 +69,6 @@ def plot_threads_vs_bandwidth_and_save(df, output_file, title_prefix):
     plt.legend()
     plt.savefig(output_file)
     plt.close()
-    print(f"file saved: {output_file}")
 
 
 def plot_threads_vs_latency_and_save(df, output_file, title_prefix):
@@ -89,7 +88,6 @@ def plot_threads_vs_latency_and_save(df, output_file, title_prefix):
     plt.legend()
     plt.savefig(output_file)
     plt.close()
-    print(f"file saved: {output_file}")
 
 
 def plot_bw_latency(base_dir):
@@ -128,7 +126,7 @@ def plot_bw_latency(base_dir):
     }
 
     if load_data.empty:
-        print("No LOAD data found.")
+        logger.info("No LOAD data found.")
     else:
         plot_bandwidth_vs_latency_and_save(
             load_data, load_output_files["bandwidth_vs_latency"], "LOAD"
@@ -141,7 +139,7 @@ def plot_bw_latency(base_dir):
         )
 
     if store_data.empty:
-        print("No STORE data found.")
+        logger.info("No STORE data found.")
     else:
         plot_bandwidth_vs_latency_and_save(
             store_data, store_output_files["bandwidth_vs_latency"], "STORE"

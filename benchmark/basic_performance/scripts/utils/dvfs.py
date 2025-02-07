@@ -26,23 +26,22 @@
 
 import glob
 import os
-import subprocess
+
+from loguru import logger
+
+from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
 
 
 def set_cpu_boost(mode):
     if mode not in ["performance", "powersave"]:
-        print(f"Invalid mode: {mode}")
+        logger.error(f"Invalid mode: {mode}")
         return
 
     for file_path in glob.glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"):
-        print(f"Set {mode} mode for {file_path}")
-        try:
-            subprocess.run(
-                ["sudo", "bash", "-c", f"echo '{mode}' > {file_path}"], check=True
-            )
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to set {mode} mode for {file_path}: {e}")
-            
+        logger.info(f"Set {mode} mode for {file_path}")
+        cmd = f"echo {mode} | tee {file_path}"
+        run_as_sudo(cmd)
+
 
 def control_cpu_boost():
     if os.getenv("boost_cpu") == "True":

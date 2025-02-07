@@ -248,3 +248,6 @@ extern/
 
 # Profiling Result
 results/
+
+# evironment
+self.env

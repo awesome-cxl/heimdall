@@ -24,6 +24,8 @@
 # SOFTWARE.
 #
 
+from loguru import logger
+
 import benchmark.basic_performance.scripts.parse.bw_latency_parser as parser
 import benchmark.basic_performance.scripts.parse.cache_parser as cache_parser
 import benchmark.basic_performance.scripts.plot.bw_latency_plot as plotter
@@ -37,5 +39,5 @@ def make_result(base_dir, task_id):
     elif task_id in ["200"]:
         cache_parser.parse_and_plot(base_dir)
     else:
-        print("task_id not found in make_result")
+        logger.error("task_id not found in make_result")
         return

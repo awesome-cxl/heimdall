@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from loguru import logger
 
 
 # Function to read log data from a file
@@ -72,7 +73,7 @@ def parse_pattern(base_dir):
                         load_lat_ns,
                     ) = test_info.groups()
 
-                    print(
+                    logger.info(
                         ", ".join(
                             [
                                 f"Block Num: {block_num}",

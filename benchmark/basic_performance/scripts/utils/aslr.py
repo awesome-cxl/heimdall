@@ -26,22 +26,22 @@
 
 import sys
 
+from loguru import logger
+
+from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
+
 
 def set_aslr(state):
     if state == "on":
         value = "2"
-        print("Turning ASLR on")
+        logger.info("Turning ASLR on")
     elif state == "off":
         value = "0"
-        print("Turning ASLR off")
+        logger.info("Turning ASLR off")
     else:
-        print(f"Invalid argument: {state}")
-        print("Usage: python script.py <on|off>")
+        logger.error(f"Invalid argument: {state}")
+        logger.error("Usage: python script.py <on|off>")
         sys.exit(1)
 
-    try:
-        with open("/proc/sys/kernel/randomize_va_space", "w") as f:
-            f.write(value)
-    except PermissionError:
-        print("Permission denied: You need root privileges to change ASLR settings.")
-        sys.exit(1)
+    cmd = f"echo {value} | tee /proc/sys/kernel/randomize_va_space"
+    run_as_sudo(cmd)

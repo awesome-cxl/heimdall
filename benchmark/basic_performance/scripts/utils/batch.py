@@ -29,40 +29,41 @@ import itertools
 import os
 import re
 import socket
-import subprocess
 import sys
+
+import yaml
+from dotenv import load_dotenv
+from invoke import run
+from loguru import logger
 
 import benchmark.basic_performance.scripts.utils.batch_cache as cache_batch
 import benchmark.basic_performance.scripts.utils.dvfs as dvfs
 import benchmark.basic_performance.scripts.utils.prefetch as prefetch
 import benchmark.basic_performance.scripts.utils.slack as slack
 import benchmark.basic_performance.scripts.utils.smt as smt
-import yaml
-from dotenv import load_dotenv
 
 
 def extract_task_number(file_path):
     match = re.search(r"/(\d+)_.*\.yaml$", file_path)
     if match:
-        # print(f"task number: {int(match.group(1))}")
         return int(match.group(1))
     else:
-        print("Can not find task number")
+        logger.error("Can not find task number")
         sys.exit(1)
 
 
 def load_global_env():
     host_name = socket.gethostname()
-    path = os.path.join(os.path.dirname(__file__), f"./env_files/{host_name}.env")
+    path = os.path.join(os.path.dirname(__file__), f"../../env_files/{host_name}.env")
     if not os.path.isfile(path):
-        print(f"Error: {path} not found")
-        print("Error please make machine env file first @ utils/env_files")
+        logger.error(f"Error: {path} not found")
+        logger.error("Error please make machine env file first @ utils/env_files")
         sys.exit(1)
     load_dotenv(dotenv_path=path)
-    print(f"hostname: {host_name}")
-    print(f"disabled prefetch: {os.getenv('disable_prefetch')}")
-    print(f"boost cpu: {os.getenv('boost_cpu')}")
-    print("core num per socket: ", os.getenv("core_num_per_socket"))
+    logger.info(f"hostname: {host_name}")
+    logger.info(f"disabled prefetch: {os.getenv('disable_prefetch')}")
+    logger.info(f"boost cpu: {os.getenv('boost_cpu')}")
+    logger.info(f"core num per socket: {os.getenv('core_num_per_socket')}")
 
 
 def prepare_run(task_file, machine_type):
@@ -73,12 +74,12 @@ def prepare_run(task_file, machine_type):
         dvfs.control_cpu_boost()
         prefetch.control_prefetch()
     elif machine_type == "arm":
-        print("arm machine hw control")
+        logger.info("ARM machine")
         # smt.turn_off_smt()
         # dvfs.control_cpu_boost()
         # prefetch.control_prefetch()
     else:
-        print("Error: Invalid machine type")
+        logger.error("Error: Invalid machine type")
         sys.exit(1)
     pass
 
@@ -91,7 +92,7 @@ def wrap_up_run(task_file, temp_file, machine_type):
     elif machine_type == "arm":
         pass
     else:
-        print("Error: Invalid machine type")
+        logger.error("Error: Invalid machine type")
         sys.exit(1)
 
     slack.slack_notice_end(f"Finish to run {task_file}")
@@ -99,35 +100,32 @@ def wrap_up_run(task_file, temp_file, machine_type):
     if os.path.exists(temp_file):
         os.remove(temp_file)
     if not os.path.isdir(directory):
-        print(f"Error: Directory not found: {directory}")
+        logger.error(f"Error: Directory not found: {directory}")
         sys.exit(1)
 
     txt_files = glob.glob(os.path.join(directory, "*.txt"))
     for file in txt_files:
         try:
             os.remove(file)
-            print(f"Deleted: {file}")
+            logger.success(f"Deleted: {file}")
         except Exception as e:
-            print(f"Error deleting {file}: {e}")
+            logger.error(f"Error deleting {file}: {e}")
 
 
 def load_config(file_path):
-    print(f"load yaml file: {file_path}")
     with open(file_path, "r") as file:
         config = yaml.safe_load(file)
         if config:
-            print("Loaded YAML configuration:")
-            for key, value in config.items():
-                print(f"{key}: {value}")
+            logger.success("Loaded YAML configuration")
     return config
 
 
 def make_dir(script_path, output_path):
     if not os.path.isfile(script_path):
-        print(f"Error: Script not found: {script_path}")
+        logger.error(f"Error: Script not found: {script_path}")
         sys.exit(1)
     if not os.path.isdir(output_path):
-        print(f"Output path not found, so creating it {output_path}")
+        logger.info(f"Output path not found, so creating it {output_path}")
         os.makedirs(output_path)
     pass
 
@@ -144,7 +142,7 @@ def get_bin_path(build_type):
     }
 
     if build_type not in paths:
-        print("Error: Invalid build type")
+        logger.error("Error: Invalid build type")
         sys.exit(1)
 
     return paths[build_type]
@@ -192,16 +190,13 @@ def make_yaml_file(
     pass
 
 
-def run(script_path, build_type, output_path, device_type, access_type, machine_type):
+def run_all(
+    script_path, build_type, output_path, device_type, access_type, machine_type
+):
     make_dir(script_path, output_path)
     bin_path = get_bin_path(build_type)
-    cmd = [bin_path, "-f", script_path, "-o", output_path]
-    print("Command: ", cmd)
-    try:
-        subprocess.check_call(cmd)
-    except subprocess.CalledProcessError as e:
-        print(f"Error: Test failed with error code {e.returncode}")
-        sys.exit(1)
+    cmd = f"{bin_path} -f {script_path} -o {output_path}"
+    run(cmd, echo=True)
     pass
 
 
@@ -264,7 +259,9 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
             bw_store_pattern_block_size,
         )
 
-        run(yaml_path, build_type, output_path, device_type, access_type, machine_type)
+        run_all(
+            yaml_path, build_type, output_path, device_type, access_type, machine_type
+        )
         if build_type in ["designtest"]:
             break
     wrap_up_run(script_path, yaml_path, machine_type)

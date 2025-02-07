@@ -24,16 +24,17 @@
 # SOFTWARE.
 #
 
-import argparse
 import os
+
+import typer
 
 import benchmark.basic_performance.scripts.utils.batch as batch
 import benchmark.basic_performance.scripts.utils.build as build_all
 import benchmark.basic_performance.scripts.utils.result as result
 import benchmark.basic_performance.scripts.utils.utils as utils
-import typer
 
 app = typer.Typer()
+
 
 @app.command()
 def build(task_id: str):
@@ -42,6 +43,7 @@ def build(task_id: str):
     build_type = "release"
     utils.check_task_continuous(file)
     build_all.build(machine, build_type, task_id)
+
 
 @app.command()
 def run(task_id: str):

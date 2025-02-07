@@ -26,37 +26,41 @@
 
 import os
 import shutil
-import subprocess
 import sys
+
+from invoke import run
+from loguru import logger
+
+from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
 
 
 def check_msr_module():
     try:
         # Check if 'msr' module is loaded
-        lsmod_output = subprocess.check_output(["lsmod"]).decode()
+        lsmod_output = run("lsmod", hide=True).stdout
         if "msr" not in lsmod_output:
-            print("ERROR: module 'msr' not inserted")
+            logger.error("ERROR: module 'msr' not inserted")
             sys.exit(1)
 
         # Check if 'rdmsr' command exists
         if not shutil.which("rdmsr"):
-            print("ERROR: command 'rdmsr' not found")
+            logger.error("ERROR: command 'rdmsr' not found")
             sys.exit(1)
 
     except Exception as e:
-        print(f"ERROR: {str(e)}")
+        logger.error(f"ERROR: {str(e)}")
         sys.exit(1)
 
 
 def set_prefetcher_intel(mode):
     if mode == "off":
-        os.system("wrmsr -a 0x1a4 0x2f")
+        run_as_sudo("wrmsr -a 0x1a4 0x2f")
     elif mode == "on":
-        os.system("wrmsr -a 0x1a4 0x0")
+        run_as_sudo("wrmsr -a 0x1a4 0x0")
     elif mode == "show":
-        os.system("rdmsr -a 0x1a4")
+        run_as_sudo("rdmsr -a 0x1a4")
     else:
-        print(f"Invalid mode: {mode}")
+        logger.error(f"Invalid mode: {mode}")
 
 
 def set_prefetcher_amd(mode):
@@ -66,60 +70,62 @@ def set_prefetcher_amd(mode):
 
         if "cpu family" in cpuinfo_data and "25" in cpuinfo_data:
             if "model" in cpuinfo_data and "17" in cpuinfo_data:
-                print("Detected Zen4 CPU")
+                logger.info("Detected Zen4 CPU")
                 if mode == "off":
-                    os.system("wrmsr -a 0xc0011020 0x4400000000000")
-                    os.system("wrmsr -a 0xc0011021 0x4000000000040")
-                    os.system("wrmsr -a 0xc0011022 0x8680000401570000")
-                    os.system("wrmsr -a 0xc001102b 0x2040cc10")
-                    print("MSR register values for Zen4 applied: OFF")
+                    run_as_sudo("wrmsr -a 0xc0011020 0x4400000000000")
+                    run_as_sudo("wrmsr -a 0xc0011021 0x4000000000040")
+                    run_as_sudo("wrmsr -a 0xc0011022 0x8680000401570000")
+                    run_as_sudo("wrmsr -a 0xc001102b 0x2040cc10")
+                    logger.success("MSR register values for Zen4 applied: OFF")
                 elif mode == "on":
-                    os.system("wrmsr -a 0xc0011020 0x4400200000000")
-                    os.system("wrmsr -a 0xc0011021 0x4000000000040")
-                    os.system("wrmsr -a 0xc0011022 0x8680000401500000")
-                    os.system("wrmsr -a 0xc001102b 0x2040cc15")
-                    print("MSR register values for Zen4 applied: ON")
+                    run_as_sudo("wrmsr -a 0xc0011020 0x4400200000000")
+                    run_as_sudo("wrmsr -a 0xc0011021 0x4000000000040")
+                    run_as_sudo("wrmsr -a 0xc0011022 0x8680000401500000")
+                    run_as_sudo("wrmsr -a 0xc001102b 0x2040cc15")
+                    logger.success("MSR register values for Zen4 applied: ON")
                 elif mode == "show":
-                    os.system("rdmsr -a 0xc0011020")
-                    os.system("rdmsr -a 0xc0011021")
-                    os.system("rdmsr -a 0xc0011022")
-                    os.system("rdmsr -a 0xc001102b")
+                    run_as_sudo("rdmsr -a 0xc0011020")
+                    run_as_sudo("rdmsr -a 0xc0011021")
+                    run_as_sudo("rdmsr -a 0xc0011022")
+                    run_as_sudo("rdmsr -a 0xc001102b")
                 else:
-                    print(f"Invalid mode: {mode}")
+                    logger.error(f"Invalid mode: {mode}")
             else:
-                print("Detected Zen3 CPU")
+                logger.info("Detected Zen3 CPU")
                 if mode == "off":
-                    os.system("wrmsr -a 0xc0011020 0x4480000000000")
-                    os.system("wrmsr -a 0xc0011021 0x1c000200000040")
-                    os.system("wrmsr -a 0xc0011022 0xc000000401570000")
-                    os.system("wrmsr -a 0xc001102b 0x2000cc10")
-                    print("MSR register values for Zen3 applied: OFF")
+                    run_as_sudo("wrmsr -a 0xc0011020 0x4480000000000")
+                    run_as_sudo("wrmsr -a 0xc0011021 0x1c000200000040")
+                    run_as_sudo("wrmsr -a 0xc0011022 0xc000000401570000")
+                    run_as_sudo("wrmsr -a 0xc001102b 0x2000cc10")
+                    logger.success("MSR register values for Zen3 applied: OFF")
                 elif mode == "on":
-                    os.system("wrmsr -a 0xc0011020 0x4480000000000")
-                    os.system("wrmsr -a 0xc0011021 0x2000000c0")
-                    os.system("wrmsr -a 0xc0011022 0xc000000401500000")
-                    os.system("wrmsr -a 0xc001102b 0x2000cc15")
-                    print("MSR register values for Zen3 applied: ON")
+                    run_as_sudo("wrmsr -a 0xc0011020 0x4480000000000")
+                    run_as_sudo("wrmsr -a 0xc0011021 0x2000000c0")
+                    run_as_sudo("wrmsr -a 0xc0011022 0xc000000401500000")
+                    run_as_sudo("wrmsr -a 0xc001102b 0x2000cc15")
+                    logger.success("MSR register values for Zen3 applied: ON")
                 elif mode == "show":
-                    os.system("rdmsr -a 0xc0011020")
-                    os.system("rdmsr -a 0xc0011021")
-                    os.system("rdmsr -a 0xc0011022")
-                    os.system("rdmsr -a 0xc001102b")
+                    run_as_sudo("rdmsr -a 0xc0011020")
+                    run_as_sudo("rdmsr -a 0xc0011021")
+                    run_as_sudo("rdmsr -a 0xc0011022")
+                    run_as_sudo("rdmsr -a 0xc001102b")
                 else:
-                    print(f"Invalid mode: {mode}")
+                    logger.error(f"Invalid mode: {mode}")
         else:
-            print("Detected Zen1/Zen2 CPU")
+            logger.info("Detected Zen1/Zen2 CPU")
             if mode == "off":
-                os.system("wrmsr -a 0xc0011020 0")
-                os.system("wrmsr -a 0xc0011021 0x40")
-                os.system("wrmsr -a 0xc0011022 0x1510000")
-                os.system("wrmsr -a 0xc001102b 0x2000cc16")
-                print("MSR register values for Zen1/Zen2 applied: OFF")
+                run_as_sudo("wrmsr -a 0xc0011020 0")
+                run_as_sudo("wrmsr -a 0xc0011021 0x40")
+                run_as_sudo("wrmsr -a 0xc0011022 0x1510000")
+                run_as_sudo("wrmsr -a 0xc001102b 0x2000cc16")
+                logger.success("MSR register values for Zen1/Zen2 applied: OFF")
             else:
-                print("ERROR: The script does not handle Zen1/2 msr register recovery")
+                logger.error(
+                    "ERROR: The script does not handle Zen1/2 msr register recovery"
+                )
 
     except FileNotFoundError:
-        print("ERROR: '/proc/cpuinfo' not found")
+        logger.error("ERROR: '/proc/cpuinfo' not found")
         sys.exit(1)
 
 
@@ -134,14 +140,14 @@ def set_prefetcher(mode):
         else:
             set_prefetcher_intel(mode)
     except FileNotFoundError:
-        print("ERROR: '/proc/cpuinfo' not found")
+        logger.error("ERROR: '/proc/cpuinfo' not found")
         sys.exit(1)
 
 
 def control_prefetch():
     if os.getenv("disable_prefetch") == "True":
-        print("prefetch off")
+        logger.info("Disable prefetch")
         set_prefetcher("off")
     else:
-        print("prefetch on")
+        logger.info("Enable prefetch")
         set_prefetcher("on")
