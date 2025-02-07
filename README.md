@@ -29,7 +29,7 @@ $ pre-commit install
 ### 1. Clone the code 
 
 ```shell
-$ git clone --recurse--submodules git@github.com:awesome-cxl/heimdall.git
+$ git clone --recurse-submodules git@github.com:awesome-cxl/heimdall.git
 ```
 
 ### 2. Install dependencies
@@ -56,7 +56,7 @@ Make the machine's env file
 
 ```shell
 $ cd benchmark/basic_performance/env_files
-$ vim machine_template.env
+$ nano machine_template.env
 $ mv machine_template.env {hostname}.env
 ```
 
