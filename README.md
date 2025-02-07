@@ -66,7 +66,7 @@ if you don't know the hostname, you can use the following command to get it:
 ```shell
 $ hostname
 ```
-### 4. Make the test sciript(in you need)
+### 4. Make the test sciript(if you need)
 
 For bandwidth vs latency test
 
