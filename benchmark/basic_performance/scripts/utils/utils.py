@@ -86,7 +86,7 @@ def get_task_id(task_prefix):
     except subprocess.CalledProcessError:
         git_head = "unknown"
     hostname = socket.gethostname()
-    return f"tasks-{current_time}-{task_prefix}-{git_head}-{hostname}"
+    return f"basic-{current_time}-{task_prefix}-{git_head}-{hostname}"
 
 
 def get_unique_task_id(base_directory, task_prefix):
@@ -102,7 +102,7 @@ def get_unique_task_id(base_directory, task_prefix):
 
 
 def get_task_directory(task_prefix):
-    base_dir = os.path.join(os.path.dirname(__file__), "../../../../results/tasks")
+    base_dir = os.path.join(os.path.dirname(__file__), "../../../../../results/basic_performance/{task_prefix}")
     if not os.path.isdir(base_dir):
         os.makedirs(base_dir)
     return get_unique_task_id(base_dir, task_prefix)

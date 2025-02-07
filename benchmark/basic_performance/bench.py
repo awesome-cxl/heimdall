@@ -25,3 +25,14 @@ def run(config: str):
         print(f"this is the unknown task: {config}")
     pass
 
+
+@app.command()
+def install(config: str):
+    print("installing")
+    pass
+
+
+@app.command
+def plot(config: str):
+    print("plotting")
+    pass

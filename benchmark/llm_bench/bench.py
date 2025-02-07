@@ -14,3 +14,15 @@ def run(config: str):
     print("run llm bench")
     print(f"config:{config}")
     pass
+
+
+@app.command()
+def install(config: str):
+    print("installing")
+    pass
+
+
+@app.command
+def plot(config: str):
+    print("plotting")
+    pass

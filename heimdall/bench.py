@@ -59,6 +59,41 @@ def all(bench_name: str, config: str):
         raise typer.Exit()
     typer.echo(f"Run all {bench_name} benchmark successfully")
 
+@app.command()
+def install(bench_name: str, config: str):
+    scripts = {
+       "basic": basic_perf.install,
+       "llm": llm_bench.install   
+    }
+
+    if bench_name not in scripts:
+        print(f"Invalid benchmark name: {bench_name}")
+        raise typer.Exit()
+    
+    bench = scripts[bench_name]
+    typer.echo(f"Installing {bench_name} benchmark")
+    bench(config)
+    typer.echo(f"Install {bench_name} benchmark successfully")
+    pass
+
+
+@app.command
+def plot(bench_name: str, config: str):
+    print("plotting")
+    scripts = { 
+        "basic": basic_perf.plot,
+        "llm": llm_bench.plot
+    }
+    
+    if bench_name not in scripts:
+        print(f"Invalid benchmark name: {bench_name}")
+        raise typer.Exit()
+    
+    bench = scripts[bench_name]
+    typer.echo(f"Plotting {bench_name} benchmark")
+    bench(config)
+    typer.echo(f"Plot {bench_name} benchmark successfully")
+    pass
 
 if __name__ == "__main__":
     app()

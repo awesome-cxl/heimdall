@@ -30,33 +30,19 @@ import subprocess
 
 
 def set_cpu_boost(mode):
-    if mode == "performance":
-        print("cpu boost is enabled")
-        for file_path in glob.glob(
-            "/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
-        ):
-            print(f"Set performance mode for {file_path}")
-            try:
-                subprocess.run(
-                    ["sudo", "bash", "-c", f"echo 'performance' > {file_path}"],
-                    check=True,
-                )
-            except subprocess.CalledProcessError as e:
-                print(f"Failed to set performance mode for {file_path}: {e}")
-    elif mode == "powersave":
-        print("cpu boost is disabled")
-        for file_path in glob.glob(
-            "/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
-        ):
-            print(f"Set performance mode for {file_path}")
-            try:
-                subprocess.run(
-                    ["sudo", "bash", "-c", f"echo 'powersave' > {file_path}"],
-                    check=True,
-                )
-            except subprocess.CalledProcessError as e:
-                print(f"Failed to set performance mode for {file_path}: {e}")
+    if mode not in ["performance", "powersave"]:
+        print(f"Invalid mode: {mode}")
+        return
 
+    for file_path in glob.glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"):
+        print(f"Set {mode} mode for {file_path}")
+        try:
+            subprocess.run(
+                ["sudo", "bash", "-c", f"echo '{mode}' > {file_path}"], check=True
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to set {mode} mode for {file_path}: {e}")
+            
 
 def control_cpu_boost():
     if os.getenv("boost_cpu") == "True":
