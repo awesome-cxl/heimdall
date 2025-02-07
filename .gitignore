@@ -81,7 +81,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -251,3 +250,6 @@ results/
 
 # evironment
 self.env
+
+# temp files
+temp.yaml
