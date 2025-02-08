@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O0")
 
 project(cxl_perf_app_cache)
 
-add_subdirectory(../../../../../extern/yaml-cpp.git ${CMAKE_CURRENT_BINARY_DIR}/yaml-cpp)
+add_subdirectory(../../../../../extern/yaml-cpp ${CMAKE_CURRENT_BINARY_DIR}/yaml-cpp)
 
 file(GLOB src_files ../../../src/main_cache.cpp
      ../../../src/utils/input_parser.cpp ../../../src/utils/logger.cpp
@@ -30,4 +30,4 @@ target_link_libraries(cxl_perf_app_cache PUBLIC yaml-cpp)
 target_include_directories(
   cxl_perf_app_cache
   PUBLIC ../../../src/machine/x86/pointer_chasing ../../../src
-         ../../../src/core ../../../src/utils ../../../../../extern/yaml-cpp.git)
+         ../../../src/core ../../../src/utils ../../../../../extern/yaml-cpp)
