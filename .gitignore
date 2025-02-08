@@ -243,7 +243,6 @@ poetry.toml
 pyrightconfig.json
 
 # Extern git
-extern/
 
 # Profiling Result
 results/

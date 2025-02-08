@@ -41,7 +41,7 @@ def build(task_id: str):
     file = utils.find_file_with_prefix(task_id)
     machine = utils.get_architecture()
     build_type = "release"
-    utils.check_task_continuous(file)
+    #utils.check_task_continuous(file)
     build_all.build(machine, build_type, task_id)
 
 

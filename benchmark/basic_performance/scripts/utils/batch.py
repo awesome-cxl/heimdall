@@ -41,7 +41,7 @@ import benchmark.basic_performance.scripts.utils.dvfs as dvfs
 import benchmark.basic_performance.scripts.utils.prefetch as prefetch
 import benchmark.basic_performance.scripts.utils.slack as slack
 import benchmark.basic_performance.scripts.utils.smt as smt
-
+from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
 
 def extract_task_number(file_path):
     match = re.search(r"/(\d+)_.*\.yaml$", file_path)
@@ -195,8 +195,8 @@ def run_all(
 ):
     make_dir(script_path, output_path)
     bin_path = get_bin_path(build_type)
-    cmd = f"{bin_path} -f {script_path} -o {output_path}"
-    run(cmd, echo=True)
+    cmd = f"sudo {bin_path} -f {script_path} -o {output_path}"
+    run_as_sudo(cmd)
     pass
 
 

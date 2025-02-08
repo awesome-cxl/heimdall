@@ -28,7 +28,7 @@ endif()
 
 project(cxl_perf_app)
 
-add_subdirectory(../../../../extern/yaml-cpp.git ${CMAKE_CURRENT_BINARY_DIR}/yaml-cpp)
+add_subdirectory(../../../../extern/yaml-cpp ${CMAKE_CURRENT_BINARY_DIR}/yaml-cpp)
 
 add_definitions(-DCORE_NUM_PER_SOCKET_DEF=${CORE_NUM_PER_SOCKET})
 add_definitions(-DMACHINE_TYPE_DEF=${MACHINE_TYPE})

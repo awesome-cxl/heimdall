@@ -13,6 +13,9 @@ def build(config: str):
         runner.build("100")
     elif config in ["cache"]:
         runner.build("200")
+    elif config in ["all"]:
+        runner.build("100")
+        runner.build("200")
     else:
         logger.error(f"this is the unknown task: {config}")
     pass
@@ -24,6 +27,9 @@ def run(config: str):
     if config in ["bw"]:
         runner.run("100")
     elif config in ["cache"]:
+        runner.run("200")
+    elif config in ["all"]:
+        runner.run("100")
         runner.run("200")
     else:
         logger.error(f"this is the unknown task: {config}")
