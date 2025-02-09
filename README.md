@@ -13,8 +13,6 @@ Activate the poetry python environement and execute the heimdall command line.
 ```shel
 $ poetry install
 
-$ poetry shell
-
 $ heimdall --help
 ```
 
