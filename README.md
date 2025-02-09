@@ -41,7 +41,7 @@ $ poetry install
 
 Make the user's env file
 
-***USER_PASSWORD field is mandatory***
+***`USER_PASSWORD` field is mandatory***
 
 ```shell
 $ cd benchmark/basic_performance/env_files
@@ -72,27 +72,26 @@ For bandwidth vs latency test
  $ cd benchmark/basic_performance/scripts/batch
  $ nano 100_{your test script}.yaml or reuse previous one 100_bw_vs_latency.yaml, etc.. 
  ```
- 1. thread number configuration 
-    1. specify how many thread to use in the test
-    2. ```don't overflow the number of cores in the machine```
-    3. Example:
-       1. in this case, we change the thread number from 1 to 3 and conduct the test
-    ```yaml
-      thread_num_array: [1, 2, 3]
-      ```
- 2. pattern_iteration_array configuration:
-    1. specify how many time iteration to run the random pointer chasing
- 3. thread_buffer_size array_megabyte configuration:
-    1. specify the buffer size for each thread
- 4. access_type_array configuration:
-    1. 0: local node
-    2. 1: remote node
- 5. memory_device_array configuration:
-    1. 0: cxl device
-    2. 1: dimm
- 6. loadstore_array configuration:
-    1. 0: load
-    2. 1: store
+ 1. Thread number configuration 
+    - Specify how many thread to use in the test
+    - **Warning**: Don't overflow the number of cores in the machine
+    - Example: In this case, we change the thread number from 1 to 3 and conduct the test
+       ```yaml
+       thread_num_array: [1, 2, 3]
+       ```
+ 2. `pattern_iteration_array` configuration:
+    - specify how many time iteration to run the random pointer chasing
+ 3. `thread_buffer_size` array_megabyte configuration:
+    - specify the buffer size for each thread
+ 4. `access_type_array` configuration:
+    - `0`: local node
+    - `1`: remote node
+ 5. `memory_device_array` configuration:
+    - `0`: cxl device
+    - `1`: dimm
+ 6. `loadstore_array` configuration:
+    - `0`: load
+    - `1`: store
 
 For cache analysis test
 
