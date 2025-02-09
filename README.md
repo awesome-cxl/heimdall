@@ -37,7 +37,7 @@ $ cd heimdall
 $ poetry install
 ```
 
-### 3. Make Environment files (required)
+### 3. Make Environment files
 
 Make the user's env file
 
@@ -64,7 +64,7 @@ if you don't know the hostname, you can use the following command to get it:
 ```shell
 $ hostname
 ```
-### 4. Make the test sciript(if you need)
+### 4. [Recommended] Modify/make the test sciript
 
 For bandwidth vs latency test
 
@@ -129,13 +129,3 @@ For cache analysis test
 ```bash
 $ cd {top directory}/results/basic_performance/200
 ```
-
-
-
-
-
-
-
-
-
-
