@@ -19,7 +19,7 @@ description = "Heterogeneous Memory Benchmark Suite"
 license = { text = "MIT" }
 name = "heimdall"
 readme = "README.md"
-requires-python = ">=3.12,<4.0"
+requires-python = ">=3.12,<3.14"
 version = "1.0.0"
 
 
@@ -32,3 +32,6 @@ profile = "black"
 
 [tool.poetry.scripts]
 heimdall = "heimdall:app"
+[tool.poetry.group.dev.dependencies]
+pyinstaller = "^6.12.0"
+

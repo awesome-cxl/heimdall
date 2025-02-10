@@ -22,6 +22,15 @@ When developing code, use pre-commit to format commits:
 $ pre-commit install
 ```
 
+If you need a portable standalone executable of heimdall, then:
+
+```shell
+$ poetry install
+$ poetry run pyinstaller --onefile --name=heimdall heimdall/__init__.py
+
+# Then find the executable under `./dist/` which you may copy to remote machine to use
+```
+
 ## Basic Performance
 
 ### 1. Clone the code 
