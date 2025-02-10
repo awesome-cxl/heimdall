@@ -69,10 +69,7 @@ void WorkerHandler::initialize(const std::shared_ptr<JobInfo> &job_info,
 
 std::size_t WorkerHandler::get_core_number(int thread_num,
 										   SocketId socket_id) {
-	int base_offset = 0;
-	if (socket_id == SocketId::SOCKET_1) {
-		base_offset += CoreConfig::CORE_NUMBER_PER_SOCKET;
-	}
+	int base_offset = static_cast<uint64_t>(socket_id) * CoreConfig::CORE_NUMBER_PER_SOCKET;
 	if (thread_num >= CoreConfig::CORE_NUMBER_PER_SOCKET) {
 		base_offset += CoreConfig::CORE_NUMBER_PER_SOCKET + 1;
 	}
