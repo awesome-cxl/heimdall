@@ -118,6 +118,7 @@ public:
 class CoreConfig {
 public:
   static const uint64_t CORE_NUMBER_PER_SOCKET = CORE_NUM_PER_SOCKET_DEF;
+  static const uint64_t MAX_NUMA_NODE = MAX_NUMA_NODE_DEF;
 };
 
 #endif // CXL_PERF_APP_DT_SYSTEM_DEFINE_H
