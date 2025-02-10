@@ -33,9 +33,7 @@ from loguru import logger
 
 
 def parse_result_logs(base_dir):
-    parsed_data = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-    )
+    parsed_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     for root, _, files in os.walk(base_dir):
         if "result.log" in files:
@@ -50,7 +48,6 @@ def parse_result_logs(base_dir):
                     r"Number of Threads: (\d+)\n"
                     r"Job Id: (\d+)\n"
                     r"Access Type: (\w+)\n"
-                    r"Device Type: (\w+)\n"
                     r"LoadStore Type: (\w+)\n"
                     r"Block Size: (\d+) bytes\n"
                     r"Mem alloc Type: (\w+)\n"
@@ -71,7 +68,6 @@ def parse_result_logs(base_dir):
                         threads,
                         job_id,
                         access_type,
-                        device_type,
                         loadstore_type,
                         block_size,
                         mem_alloc_type,
@@ -79,9 +75,7 @@ def parse_result_logs(base_dir):
                         bw_pattern,
                     ) = test_info.groups()
 
-                    parsed_data[device_type][access_type][latency_pattern][
-                        bw_pattern
-                    ].append(
+                    parsed_data[access_type][latency_pattern][bw_pattern].append(
                         {
                             "Size": size,
                             "Threads": int(threads),
@@ -96,20 +90,19 @@ def parse_result_logs(base_dir):
                 else:
                     logger.error(f"Skipping log file due to missing data: {log_path}")
 
-    for device_type in parsed_data:
-        for access_type in parsed_data[device_type]:
-            for latency_pattern in parsed_data[device_type][access_type]:
-                for bw_pattern in parsed_data[device_type][access_type][
-                    latency_pattern
-                ]:
-                    parsed_data[device_type][access_type][latency_pattern][
+    for access_type in parsed_data:
+        for latency_pattern in parsed_data[access_type]:
+            for bw_pattern in parsed_data[access_type][
+                latency_pattern
+            ]:
+                parsed_data[access_type][latency_pattern][
+                    bw_pattern
+                ] = sorted(
+                    parsed_data[access_type][latency_pattern][
                         bw_pattern
-                    ] = sorted(
-                        parsed_data[device_type][access_type][latency_pattern][
-                            bw_pattern
-                        ],
-                        key=lambda x: x["Threads"],
-                    )
+                    ],
+                    key=lambda x: x["Threads"],
+                )
 
     return parsed_data
 
@@ -130,25 +123,23 @@ def save_results_to_csv(data, output_file):
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
-        for device_type, access_types in data.items():
-            for access_type, latency_patterns in access_types.items():
-                for latency_pattern, bandwidth_patterns in latency_patterns.items():
-                    for bw_pattern, tests in bandwidth_patterns.items():
-                        for test in tests:
-                            row = {
-                                "Device Type": device_type,
-                                "Access Type": access_type,
-                                "Latency Pattern": latency_pattern,
-                                "Bandwidth Pattern": bw_pattern,
-                                "LoadStore Type": test["LoadStore Type"],
-                                "Threads": test["Threads"],
-                                "Block Size (bytes)": test["Block Size (bytes)"],
-                                "Total Bandwidth (MiB/s)": test[
-                                    "Total Bandwidth (MiB/s)"
-                                ],
-                                "Measured Latency (ns)": test["Measured Latency (ns)"],
-                            }
-                            writer.writerow(row)
+        for access_type, latency_patterns in data.items():
+            for latency_pattern, bandwidth_patterns in latency_patterns.items():
+                for bw_pattern, tests in bandwidth_patterns.items():
+                    for test in tests:
+                        row = {
+                            "Access Type": access_type,
+                            "Latency Pattern": latency_pattern,
+                            "Bandwidth Pattern": bw_pattern,
+                            "LoadStore Type": test["LoadStore Type"],
+                            "Threads": test["Threads"],
+                            "Block Size (bytes)": test["Block Size (bytes)"],
+                            "Total Bandwidth (MiB/s)": test[
+                                "Total Bandwidth (MiB/s)"
+                            ],
+                            "Measured Latency (ns)": test["Measured Latency (ns)"],
+                        }
+                        writer.writerow(row)
     logger.info(f"The result is saved in {output_file}")
 
 

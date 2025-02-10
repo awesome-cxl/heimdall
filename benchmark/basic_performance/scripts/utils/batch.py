@@ -168,8 +168,8 @@ def make_yaml_file(
     lt_pattern_access_size,
     lt_pattern_stride_size,
     delay,
-    access_type,
-    device_type,
+    numa_node,
+    core_socket,
     ldst_type,
     mem_alloc_type,
     latency_pattern,
@@ -186,8 +186,8 @@ def make_yaml_file(
         "lt_pattern_access_size": lt_pattern_access_size,
         "lt_pattern_stride_size": lt_pattern_stride_size,
         "delay": delay,
-        "access_type": access_type,
-        "device_type": device_type,
+        "numa_type": numa_node,
+        "socket_type": core_socket,
         "loadstore_type": ldst_type,
         "mem_alloc_type": mem_alloc_type,
         "latency_pattern": latency_pattern,
@@ -203,8 +203,7 @@ def make_yaml_file(
 
 
 def run_all(
-    script_path, build_type, output_path, device_type, access_type, machine_type
-):
+    script_path, build_type, output_path):
     make_dir(script_path, output_path)
     bin_path = get_bin_path(build_type)
     cmd = f"sudo {bin_path} -f {script_path} -o {output_path}"
@@ -216,8 +215,8 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
     config = load_config(script_path)
 
     param_combinations = itertools.product(
-        config["memory_device_array"],
-        config["access_type_array"],
+        config["numa_node_array"],
+        config["core_socket_array"],
         config["thread_num_array"],
         config["latency_pattern_block_size_array_byte"],
         config["latency_pattern_access_size_array_byte"],
@@ -234,8 +233,8 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
     )
     prepare_run(script_path, machine_type)
     for (
-        device_type,
-        access_type,
+        numa_node,
+        core_socket,
         num_threads,
         lt_pattern_block_size,
         lt_pattern_access_size,
@@ -266,8 +265,8 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
             lt_pattern_access_size,
             lt_pattern_stride_size,
             latency,
-            access_type,
-            device_type,
+            numa_node,
+            core_socket,
             ldst_type,
             mem_alloc_type,
             latency_pattern,
@@ -279,8 +278,7 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
         )
 
         run_all(
-            yaml_path, build_type, output_path, device_type, access_type, machine_type
-        )
+            yaml_path, build_type, output_path)
         if build_type in ["designtest"]:
             break
     wrap_up_run(script_path, yaml_path, machine_type)

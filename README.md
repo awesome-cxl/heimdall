@@ -96,10 +96,14 @@ For bandwidth vs latency test
  $ cd benchmark/basic_performance/scripts/batch
  $ nano 100_{your test script}.yaml or reuse previous one 100_bw_vs_latency.yaml, etc..
  ```
- 1. Thread number configuration
-    - Specify how many thread to use in the test
-    - **Warning**: Don't overflow the number of cores in the machine
-    - Example: In this case, we change the thread number from 1 to 3 and conduct the test
+ 1. Thread number & Thread number type configuration:
+    - 'thread_num_type':
+      - `0`: user defined thread number, specify the thread number in `thread_num_array`
+      - `1`: auto detect thread number, in this mode, thread number will be detected automatically and sweep the thread number from 1 to the detected thread number 
+   - 'thread_num_array':
+      - Specify how many thread to use in the test
+      - **Warning**: Don't overflow the number of cores in the machine
+      - Example: In this case, we change the thread number from 1 to 3 and conduct the test
        ```yaml
        thread_num_array: [1, 2, 3]
        ```
@@ -107,12 +111,10 @@ For bandwidth vs latency test
     - specify how many time iteration to run the random pointer chasing
  3. `thread_buffer_size` array_megabyte configuration:
     - specify the buffer size for each thread
- 4. `access_type_array` configuration:
-    - `0`: local node
-    - `1`: remote node
- 5. `memory_device_array` configuration:
-    - `0`: cxl device
-    - `1`: dimm
+ 4. numa_node_array configuration:
+    1. specify the numa node to use
+ 5. core_socket_array configuration:
+    1. specify the core to use 
  6. `loadstore_array` configuration:
     - `0`: load
     - `1`: store

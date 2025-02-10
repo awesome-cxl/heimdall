@@ -51,10 +51,8 @@ public:
 
 private:
   std::shared_ptr<WorkerInfo> _worker_info;
-  std::size_t get_core_number(int thread_num, DeviceType device_type,
-                              AccessType access_type);
+  std::size_t get_core_number(int thread_num, SocketId socket_id);
   std::string generate_test_info(const std::shared_ptr<JobInfo> &job_info);
-  static int get_numa_id(DeviceType device_type, AccessType access_type);
 };
 
 class WorkerHandlerForBandwidth : public WorkerHandler {
