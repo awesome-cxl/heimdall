@@ -42,6 +42,7 @@ import benchmark.basic_performance.scripts.utils.prefetch as prefetch
 import benchmark.basic_performance.scripts.utils.slack as slack
 import benchmark.basic_performance.scripts.utils.smt as smt
 from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
+from heimdall.utils.path import get_workspace_path
 
 
 def make_yaml_file(
@@ -77,9 +78,16 @@ def make_yaml_file(
 
 
 def get_bin_path():
-    bin_path = os.path.join(
-        os.path.dirname(__file__),
-        "./../../build/cache_test/user_space/build/bin/cxl_perf_app_cache",
+    bin_path = (
+        get_workspace_path()
+        / "benchmark"
+        / "basic_performance"
+        / "build"
+        / "cache_test"
+        / "user_space"
+        / "build"
+        / "bin"
+        / "cxl_perf_app_cache"
     )
     return bin_path
 
@@ -122,9 +130,15 @@ def check_and_remove_module(module_name):
 
 def insert_module():
     logger.info("Inserting module")
-    module_path = os.path.join(
-        os.path.dirname(__file__),
-        "./../../src/machine/x86/pointer_chasing/pointer_chasing.ko",
+    module_path = (
+        get_workspace_path()
+        / "benchmark"
+        / "basic_performance"
+        / "src"
+        / "machine"
+        / "x86"
+        / "pointer_chasing"
+        / "pointer_chasing.ko"
     )
     if not os.path.exists(module_path):
         logger.error(f"Module file {module_path} does not exist.")
@@ -137,18 +151,37 @@ def insert_module():
 
 
 def remove_kernel_file():
-    build_scripts_path = os.path.join(
-        os.path.dirname(__file__), "../../build/cache_test/module/build.py"
-    )
-    if not os.path.isfile(build_scripts_path):
-        logger.error("Error: Build script not found")
-        sys.exit(1)
-    run_as_sudo(f"python3 {build_scripts_path} clean")
+    # build_scripts_path = (
+    #     get_workspace_path()
+    #     / "benchmark"
+    #     / "basic_performance"
+    #     / "build"
+    #     / "cache_test"
+    #     / "module"
+    #     / "build.py"
+    # )
+    # if not os.path.isfile(build_scripts_path):
+    #     logger.error("Error: Build script not found")
+    #     sys.exit(1)
+    # run_as_sudo(f"python3 {build_scripts_path} clean")
+
+    # TODO: This can be a direct call to that funciton, no need to use `sub_cmd`
+    # run_heimdall_sub_cmd("basic-performance build cache-test module clean")
+
+    from benchmark.basic_performance.build.cache_test.module import clean
+
+    clean()
 
 
 def load_global_env():
     host_name = socket.gethostname()
-    path = os.path.join(os.path.dirname(__file__), f"../../env_files/{host_name}.env")
+    path = (
+        get_workspace_path()
+        / "benchmark"
+        / "basic_performance"
+        / "env_files"
+        / f"{host_name}.env"
+    )
     if not os.path.isfile(path):
         (f"Error: {path} not found")
         logger.error("Error please make machine env file first @ utils/env_files")
@@ -188,7 +221,14 @@ def run_cache_test(script_path, output_path):
     ) in param_combinations:
         if block_num * stride_size >= test_size:
             continue
-        yaml_path = os.path.join(os.path.dirname(__file__), "../batch/temp.yaml")
+        yaml_path = (
+            get_workspace_path()
+            / "benchmark"
+            / "basic_performance"
+            / "scripts"
+            / "batch"
+            / "temp.yaml"
+        )
         make_yaml_file(
             yaml_path,
             repeat,

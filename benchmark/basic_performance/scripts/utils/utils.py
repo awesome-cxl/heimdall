@@ -33,9 +33,14 @@ from datetime import datetime
 from invoke import run
 from loguru import logger
 
+from heimdall.utils.path import get_workspace_path
+
 
 def find_file_with_prefix(task_number_prefix):
-    directory = os.path.join(os.path.dirname(__file__), "../batch")
+    directory = (
+        get_workspace_path() / "benchmark" / "basic_performance" / "scripts" / "batch"
+    )
+
     try:
         if not os.path.isdir(directory):
             logger.error(f"Error: Directory '{directory}' does not exist.")
@@ -95,10 +100,7 @@ def get_unique_task_id(base_directory, task_prefix):
 
 
 def get_task_directory(task_prefix):
-    base_dir = os.path.join(
-        os.path.dirname(__file__),
-        f"../../../../results/basic_performance/{task_prefix}",
-    )
+    base_dir = get_workspace_path() / "results" / "basic_performance" / f"{task_prefix}"
     if not os.path.isdir(base_dir):
         os.makedirs(base_dir)
     return get_unique_task_id(base_dir, task_prefix)

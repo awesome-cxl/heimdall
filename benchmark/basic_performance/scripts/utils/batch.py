@@ -33,7 +33,6 @@ import sys
 
 import yaml
 from dotenv import load_dotenv
-from invoke import run
 from loguru import logger
 
 import benchmark.basic_performance.scripts.utils.batch_cache as cache_batch
@@ -42,6 +41,8 @@ import benchmark.basic_performance.scripts.utils.prefetch as prefetch
 import benchmark.basic_performance.scripts.utils.slack as slack
 import benchmark.basic_performance.scripts.utils.smt as smt
 from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
+from heimdall.utils.path import get_workspace_path
+
 
 def extract_task_number(file_path):
     match = re.search(r"/(\d+)_.*\.yaml$", file_path)
@@ -54,7 +55,13 @@ def extract_task_number(file_path):
 
 def load_global_env():
     host_name = socket.gethostname()
-    path = os.path.join(os.path.dirname(__file__), f"../../env_files/{host_name}.env")
+    path = (
+        get_workspace_path()
+        / "benchmark"
+        / "basic_performance"
+        / "env_files"
+        / f"{host_name}.env"
+    )
     if not os.path.isfile(path):
         logger.error(f"Error: {path} not found")
         logger.error("Error please make machine env file first @ utils/env_files")
@@ -85,7 +92,7 @@ def prepare_run(task_file, machine_type):
 
 
 def wrap_up_run(task_file, temp_file, machine_type):
-    directory = os.path.join(os.path.dirname(__file__), "../../../../heimdall/")
+    directory = get_workspace_path() / "heimdall"
 
     if machine_type == "x86" or machine_type == "mockup":
         prefetch.set_prefetcher("on")
@@ -131,8 +138,14 @@ def make_dir(script_path, output_path):
 
 
 def get_bin_path(build_type):
-    base_dir = os.path.join(
-        os.path.dirname(__file__), f"./../../build/bw_latency_test/{build_type}/build"
+    base_dir = (
+        get_workspace_path()
+        / "benchmark"
+        / "basic_performance"
+        / "build"
+        / "bw_latency_test"
+        / f"{build_type}"
+        / "build"
     )
     paths = {
         "release": os.path.join(base_dir, "cxl_perf_app_release/bin/cxl_perf_app"),
@@ -238,7 +251,14 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
         bw_load_pattern_block_size,
         bw_store_pattern_block_size,
     ) in param_combinations:
-        yaml_path = os.path.join(os.path.dirname(__file__), "../batch/temp.yaml")
+        yaml_path = (
+            get_workspace_path()
+            / "benchmark"
+            / "basic_performance"
+            / "scripts"
+            / "batch"
+            / "temp.yaml"
+        )
         make_yaml_file(
             yaml_path,
             config["job_id"],

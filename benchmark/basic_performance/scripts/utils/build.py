@@ -24,14 +24,10 @@
 # SOFTWARE.
 #
 
-import os
 import sys
 
 import typer
 from loguru import logger
-
-from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
-from heimdall.utils.cmd import run_heimdall_sub_cmd
 
 app = typer.Typer()
 
@@ -46,42 +42,65 @@ def build_bw_latency(machine_type, build_type):
 
     if machine_type == "x86" or machine_type == "arm" or machine_type == "mockup":
         logger.info(f"Running build script for {machine_type} machine")
-        run_heimdall_sub_cmd(
-            " ".join(
-                [
-                    "basic-performance build bw-latency-test release run-build",
-                    f"--arch {machine_type}",
-                ]
-            ),
-            sudo=True,
-        )
+        # run_heimdall_sub_cmd(
+        #     " ".join(
+        #         [
+        #             "basic-performance build bw-latency-test release build",
+        #             f"--arch {machine_type}",
+        #         ]
+        #     ),
+        #     sudo=True,
+        # )
         # run_as_sudo(f"python3 {build_scripts_path} -m {machine_type}")
+        from benchmark.basic_performance.build.bw_latency_test.release import build
+
+        build(machine_type)
     else:
         logger.error("Error: Invalid machine type")
         sys.exit(1)
 
 
 def build_kernel(build_type):
-    build_scripts_path = os.path.join(
-        os.path.dirname(__file__), "../../build/cache_test/module/build.py"
-    )
-    if not os.path.isfile(build_scripts_path):
-        logger.error("Error: Build script not found")
-        sys.exit(1)
-    logger.info(f"Building {build_type} for kernel")
-    run_as_sudo(f"python3 {build_scripts_path} clean")
-    run_as_sudo(f"python3 {build_scripts_path} build")
+    # build_scripts_path = (
+    #     get_workspace_path()
+    #     / "benchmark"
+    #     / "basic_performance"
+    #     / "build"
+    #     / "cache_test"
+    #     / "module"
+    #     / "build.py"
+    # )
+    # if not os.path.isfile(build_scripts_path):
+    #     logger.error("Error: Build script not found")
+    #     sys.exit(1)
+    # run_as_sudo(f"python3 {build_scripts_path} clean")
+    # run_as_sudo(f"python3 {build_scripts_path} build")
+    # logger.info(f"Building {build_type} for kernel")
+    from benchmark.basic_performance.build.cache_test.module import build, clean
+
+    clean()
+    build()
 
 
 def build_cache_user(build_type):
-    build_scripts_path = os.path.join(
-        os.path.dirname(__file__), "../../build/cache_test/user_space/build.py"
-    )
-    if not os.path.isfile(build_scripts_path):
-        logger.error("Error: Build script not found")
-        sys.exit(1)
-    logger.info(f"Building {build_type} for cache user")
-    run_as_sudo(f"python3 {build_scripts_path}")
+    # build_scripts_path = (
+    #     get_workspace_path()
+    #     / "benchmark"
+    #     / "basic_performance"
+    #     / "build"
+    #     / "cache_test"
+    #     / "user_space"
+    #     / "build.py"
+    # )
+    # if not os.path.isfile(build_scripts_path):
+    #     logger.error("Error: Build script not found")
+    #     sys.exit(1)
+    # logger.info(f"Building {build_type} for cache user")
+    # run_as_sudo(f"python3 {build_scripts_path}")
+
+    from benchmark.basic_performance.build.cache_test.user_space import build
+
+    build()
 
 
 def build_cache(build_type):

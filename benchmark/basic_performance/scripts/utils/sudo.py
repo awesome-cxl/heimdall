@@ -26,13 +26,16 @@
 
 import os
 
+import typer
 from dotenv import load_dotenv
 from invoke import Responder, sudo
-import typer
 from loguru import logger
 
-path = f"{os.path.dirname(os.path.realpath(__file__))}/../../env_files/self.env"
+from heimdall.utils.path import get_workspace_path
 
+path = (
+    get_workspace_path() / "benchmark" / "basic_performance" / "env_files" / "self.env"
+)
 load_dotenv(
     dotenv_path=path,
 )
@@ -46,7 +49,8 @@ def run_as_sudo(cmd: str):
     )
     if HOST_PASSWORD == "unknown_host":
         logger.error(
-            "Please set the user password from env 'USER_PASSWORD' and call Heimdall again"
+            "Please set the user password from env 'USER_PASSWORD' and call"
+            "Heimdall again"
         )
         raise typer.Exit(1)
     sudo(cmd, echo=True, pty=False, warn=True, watchers=[sudo_pass_responder])

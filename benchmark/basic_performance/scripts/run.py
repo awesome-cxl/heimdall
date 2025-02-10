@@ -24,24 +24,23 @@
 # SOFTWARE.
 #
 
-import os
-
 import typer
 
 import benchmark.basic_performance.scripts.utils.batch as batch
 import benchmark.basic_performance.scripts.utils.build as build_all
 import benchmark.basic_performance.scripts.utils.result as result
 import benchmark.basic_performance.scripts.utils.utils as utils
+from heimdall.utils.path import get_workspace_path
 
 app = typer.Typer()
 
 
 @app.command()
 def build(task_id: str):
-    file = utils.find_file_with_prefix(task_id)
+    # file = utils.find_file_with_prefix(task_id)
     machine = utils.get_architecture()
     build_type = "release"
-    #utils.check_task_continuous(file)
+    # utils.check_task_continuous(file)
     build_all.build(machine, build_type, task_id)
 
 
@@ -51,7 +50,14 @@ def run(task_id: str):
     machine = utils.get_architecture()
     output_path = utils.get_task_directory(task_id)
     file = utils.find_file_with_prefix(task_id)
-    script_path = os.path.join(os.path.dirname(__file__), f"batch/{file}")
+    script_path = (
+        get_workspace_path()
+        / "benchmark"
+        / "basic_performance"
+        / "scripts"
+        / "batch"
+        / f"{file}"
+    )
     batch.run_batch(script_path, build_type, output_path, machine, task_id)
     result.make_result(output_path, task_id)
 

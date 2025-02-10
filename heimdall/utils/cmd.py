@@ -10,9 +10,11 @@ app = typer.Typer()
 
 
 @app.command()
-def run(cmd, sudo=False):
+def run(cmd, sudo=False, *args, **kwargs):
+    kwargs.setdefault("echo", True)
+
     if not sudo:
-        return invoke.run(cmd)
+        return invoke.run(cmd, *args, **kwargs)
     else:
         HOST_PASSWORD = os.getenv("USER_PASSWORD", "unknown_host")
         sudo_pass_responder = invoke.Responder(
@@ -24,8 +26,13 @@ def run(cmd, sudo=False):
                 "and call Heimdall again"
             )
             raise typer.Exit(1)
+
+        kwargs.setdefault("pty", True)
+        kwargs.setdefault("watchers", [sudo_pass_responder])
         return invoke.sudo(
-            cmd, echo=True, pty=False, warn=True, watchers=[sudo_pass_responder]
+            cmd,
+            *args,
+            **kwargs,
         )
 
 
@@ -36,6 +43,6 @@ def run_heimdall_sub_cmd(sub_cmd, sudo=False):
     workspace_path = get_workspace_path()
     with chdir(workspace_path):
         if standalone:
-            return run(f"./{exec_path.name} {sub_cmd}", sudo=sudo)
+            return run(f"{exec_path.absolute()} {sub_cmd}", sudo=sudo)
         else:
             return run(f"poetry run heimdall {sub_cmd}", sudo=sudo)

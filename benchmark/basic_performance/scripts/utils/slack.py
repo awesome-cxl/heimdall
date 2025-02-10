@@ -38,7 +38,11 @@ from dotenv import load_dotenv
 # HOSTNAME=your_host_name
 from loguru import logger
 
-path = f"{os.path.dirname(os.path.realpath(__file__))}/../../env_files/self.env"
+from heimdall.utils.path import get_workspace_path
+
+path = (
+    get_workspace_path() / "benchmark" / "basic_performance" / "env_files" / "self.env"
+)
 load_dotenv(
     dotenv_path=path,
 )

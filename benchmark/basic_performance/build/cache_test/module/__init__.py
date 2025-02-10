@@ -1,25 +1,46 @@
-#
-# MIT License
-#
-# Copyright (c) 2025 Jangseon Park
-# Affiliation: University of California San Diego CSE
-# Email: jap036@ucsd.edu
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-#
+import typer
+import os
+from heimdall.utils.path import get_workspace_path, chdir
+from heimdall.utils.cmd import run
+from loguru import logger
+
+app = typer.Typer()
+
+# Define paths
+SCRIPT_DIR = (
+    get_workspace_path()
+    / "benchmark"
+    / "basic_performance"
+    / "build"
+    / "cache_test"
+    / "module"
+)
+
+# CMake build directory
+BUILD_DIR = SCRIPT_DIR / "build"
+
+# Kernel module source directory
+SRC_DIR = (
+    SCRIPT_DIR / ".." / ".." / ".." / "src" / "machine" / "x86" / "pointer_chasing"
+)
+
+
+@app.command()
+def build():
+    os.makedirs(BUILD_DIR, exist_ok=True)
+    with chdir(BUILD_DIR):
+        logger.info("Configuring CMake...")
+        run(f"cmake {SCRIPT_DIR}", sudo=True)
+
+        logger.info("Building kernel module...")
+        run("make build_kernel_module", sudo=True)
+
+
+@app.command()
+def clean():
+    logger.info("Cleaning kernel module...")
+    if not os.path.exists(BUILD_DIR):
+        logger.info("No build directory found. Nothing to clean.")
+        return
+    with chdir(BUILD_DIR):
+        run("make clean_kernel_module", sudo=True)

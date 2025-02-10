@@ -38,13 +38,13 @@ def get_executable_path():
 def get_workspace_path():
     """
     Get the root workspace path: if heimdall is compiled as standalone binary,
-    then use the folder that contains heimdall binary; if heimdall is called
-    from source from its git repo, then use the git repo path.
+    then use the current folder where the heimdall command is called; if
+    heimdall is called from source from its git repo, then use the git repo path.
     """
     exec_path, standalone = get_executable_path()
 
     if standalone:
-        workspace_path = exec_path.parent
+        workspace_path = Path().absolute()
     else:
         workspace_path = exec_path.parent.parent.parent
 

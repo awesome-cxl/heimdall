@@ -22,18 +22,33 @@ When developing code, use pre-commit to format commits:
 $ pre-commit install
 ```
 
-If you need a portable standalone executable of heimdall, then:
+**If you need a portable standalone executable of heimdall** (in case your experiment machine does not have internet or cannot install python packages), then:
 
 ```shell
-$ poetry install
-$ poetry run pyinstaller --onefile --name=heimdall heimdall/__init__.py
+$ make standalone
+# It builds the executable 'heimdall' under 'dist' dir
 
-# Then find the executable under `./dist/` which you may copy to remote machine to use
+$ cd ..
+$ tar -zcvf heimdall.tar.gz heimdall/
+$ scp heimdall.tar.gz <remote-machine>
+```
+
+And then ssh to your machine:
+
+```shell
+# Run heimdall standalone binary with all the source files from heimdall git repo
+[remote-machine] $ tar -zxvf heimdall.tar.gz
+[remote-machine] $ cd heimdall
+[remote-machine] $ ./dist/heimdall <sub-commands>
+
+# Make sure the heimdall source repo is copied with the standalone binary,
+# because all the C/C++ source code are needed and they are not part of the
+# standalone binary
 ```
 
 ## Basic Performance
 
-### 1. Clone the code 
+### 1. Clone the code
 
 ```shell
 $ git clone --recurse-submodules git@github.com:awesome-cxl/heimdall.git
@@ -79,9 +94,9 @@ For bandwidth vs latency test
 
  ```bash
  $ cd benchmark/basic_performance/scripts/batch
- $ nano 100_{your test script}.yaml or reuse previous one 100_bw_vs_latency.yaml, etc.. 
+ $ nano 100_{your test script}.yaml or reuse previous one 100_bw_vs_latency.yaml, etc..
  ```
- 1. Thread number configuration 
+ 1. Thread number configuration
     - Specify how many thread to use in the test
     - **Warning**: Don't overflow the number of cores in the machine
     - Example: In this case, we change the thread number from 1 to 3 and conduct the test

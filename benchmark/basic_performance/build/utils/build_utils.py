@@ -26,19 +26,24 @@
 
 import multiprocessing
 import os
-import shutil
-import argparse
 from dotenv import load_dotenv
 import socket
 import sys
-from invoke import run
 from loguru import logger
-from heimdall.utils.path import chdir
+from heimdall.utils.path import chdir, get_workspace_path
+from heimdall.utils.cmd import run
+from pathlib import Path
 
 
 def load_global_env():
     host_name = socket.gethostname()
-    path = os.path.join(os.path.dirname(__file__), f"../../env_files/{host_name}.env")
+    path = (
+        get_workspace_path()
+        / "benchmark"
+        / "basic_performance"
+        / "env_files"
+        / f"{host_name}.env"
+    )
     if not os.path.isfile(path):
         logger.error(f"Error: {path} not found")
         logger.error("Error please make machine env file first @ utils/env_files")
@@ -47,21 +52,24 @@ def load_global_env():
     logger.info(f"core num: {os.getenv('core_num_per_socker')}")
 
 
-def clean(build_dir):
+def clean(build_dir: Path, sudo: bool = False):
+    build_dir = build_dir.resolve()
     if os.path.exists(build_dir):
-        shutil.rmtree(build_dir)
+        run(f"rm -rf {build_dir}", sudo=sudo)
 
 
-def make_build_dir(build_dir):
+def make_build_dir(build_dir, sudo: bool = False):
+    build_dir = build_dir.resolve()
     if not os.path.exists(build_dir):
-        os.makedirs(build_dir)
+        run(f"mkdir -p {build_dir}", sudo=sudo)
 
 
 def get_threads_num():
     return min(16, multiprocessing.cpu_count())
 
 
-def run_cmake(build_dir, arch):
+def run_cmake(build_dir: Path, arch: str, sudo: bool = False):
+    build_dir = build_dir.resolve()
     load_global_env()
     with chdir(build_dir):
         if arch in ["x86", "X86"]:
@@ -80,20 +88,15 @@ def run_cmake(build_dir, arch):
                     f"-DCORE_NUM_PER_SOCKET={os.getenv('core_num_per_socker')}",
                 ]
             ),
-            echo=True,
+            sudo=sudo,
         )
         numbers = get_threads_num()
-        run(f"cmake --build . -j{numbers}", echo=True)
+        run(f"cmake --build . -j{numbers}", sudo=sudo)
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Build script")
-    parser.add_argument("-m", type=str, default="x86", help="Machine type ( x86, ARM)")
-    args = parser.parse_args()
-    return args
+def run_build(build_dir: Path, arch, sudo=False):
+    build_dir = build_dir.resolve()
 
-
-def run_build(build_dir, arch):
-    clean(build_dir)
-    make_build_dir(build_dir)
-    run_cmake(build_dir, arch)
+    clean(build_dir, sudo=sudo)
+    make_build_dir(build_dir, sudo=sudo)
+    run_cmake(build_dir, arch, sudo=sudo)
