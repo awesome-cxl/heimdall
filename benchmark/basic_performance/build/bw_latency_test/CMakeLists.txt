@@ -32,7 +32,7 @@ add_subdirectory(../../../../extern/yaml-cpp ${CMAKE_CURRENT_BINARY_DIR}/yaml-cp
 
 add_definitions(-DCORE_NUM_PER_SOCKET_DEF=${CORE_NUM_PER_SOCKET})
 add_definitions(-DMACHINE_TYPE_DEF=${MACHINE_TYPE})
-add_definitions(-DMAX_NUMA_NODE_DEF=${MAX_NUMA_NODE})
+add_definitions(-DMAX_SOCKET_NUM_DEF=${MAX_SOCKET_NUM})
 
 file(
   GLOB

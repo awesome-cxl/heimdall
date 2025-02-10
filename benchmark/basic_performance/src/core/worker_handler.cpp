@@ -71,7 +71,7 @@ std::size_t WorkerHandler::get_core_number(int thread_num,
 										   SocketId socket_id) {
 	int base_offset = static_cast<uint64_t>(socket_id) * CoreConfig::CORE_NUMBER_PER_SOCKET;
 	if (thread_num >= CoreConfig::CORE_NUMBER_PER_SOCKET) {
-		base_offset += (CoreConfig::MAX_NUMA_NODE - 1) * CoreConfig::CORE_NUMBER_PER_SOCKET + 1;
+		base_offset += (CoreConfig::MAX_SOCKET_NUM - 1) * CoreConfig::CORE_NUMBER_PER_SOCKET + 1;
 	}
 	return base_offset + thread_num;
 }

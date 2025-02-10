@@ -51,6 +51,23 @@ def get_numa_node_num(machine_type):
         logger.error(f"Failed to get NUMA node number: {result.stderr}")
         exit(1)
 
+def get_socket_number(machine_type):
+    if machine_type in ["x86"]:
+        result = run("lscpu | grep 'Socket(s):' | awk '{print $2}'", hide=True, warn=True)
+    elif machine_type in ["arm"]:
+        logger.error("ARM architecture does not support Socket number")
+        exit(1)
+    else:
+        logger.error(f"unknown machine type: {machine_type}")
+        exit(1)
+    if result.ok:
+        logger.info(f"Socket number: {result.stdout.strip()}")
+        return int(result.stdout.strip())
+    else:
+        logger.error(f"Failed to get Socket number: {result.stderr}")
+        exit(1)
+
+
 def get_cpu_number(machine_type) :
     if machine_type in ["x86"]:
         result = run("lscpu | grep 'Core(s) per socket:' | awk '{print $4}'", hide=True, warn=True)
@@ -101,6 +118,7 @@ def get_threads_num():
 def run_cmake(build_dir: Path, arch: str, sudo: bool = False):
     build_dir = build_dir.resolve()
     load_global_env()
+<<<<<<< HEAD
     with chdir(build_dir):
         if arch in ["x86", "X86"]:
             machine_type = 1
@@ -125,6 +143,24 @@ def run_cmake(build_dir: Path, arch: str, sudo: bool = False):
         )
         numbers = get_threads_num()
         run(f"cmake --build . -j{numbers}", sudo=sudo)
+=======
+    os.chdir(build_dir)
+    args = parse_args()
+    if args.m in ["x86", "X86"]:
+        machine_type = 1
+    elif args.m in ["arm", "ARM"]:
+        machine_type = 2
+    elif args.m in ["mockup", "MOCKUP"]:
+        machine_type = 3
+    else:
+        raise ValueError(f"Unknown machine type: {args.m}")
+    core_num_per_socket = get_cpu_number(args.m)
+    socket_num = get_socket_number(args.m)
+    run(
+        f"cmake .. -DCMAKE_BUILD_TYPE=Release -DMACHINE_TYPE={machine_type} -DCORE_NUM_PER_SOCKET={core_num_per_socket} -DMAX_SOCKET_NUM={socket_num}",echo=True)
+    numbers = get_threads_num()
+    run(f"cmake --build . -j{numbers}", echo=True)
+>>>>>>> 474e302 (<function>[cores] numa -> cores)
 
 
 def run_build(build_dir: Path, arch, sudo=False):
