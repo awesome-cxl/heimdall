@@ -29,3 +29,6 @@ requires      = ["poetry-core>=2.0.0,<3.0.0"]
 
 [tool.isort]
 profile = "black"
+
+[tool.poetry.scripts]
+heimdall = "heimdall:app"

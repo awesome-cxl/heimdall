@@ -28,6 +28,8 @@ import os
 
 from dotenv import load_dotenv
 from invoke import Responder, sudo
+import typer
+from loguru import logger
 
 path = f"{os.path.dirname(os.path.realpath(__file__))}/../../env_files/self.env"
 
@@ -42,4 +44,9 @@ def run_as_sudo(cmd: str):
     sudo_pass_responder = Responder(
         pattern=r"\[sudo\] password:.*", response=f"{HOST_PASSWORD}\n"
     )
+    if HOST_PASSWORD == "unknown_host":
+        logger.error(
+            "Please set the user password from env 'USER_PASSWORD' and call Heimdall again"
+        )
+        raise typer.Exit(1)
     sudo(cmd, echo=True, pty=False, warn=True, watchers=[sudo_pass_responder])

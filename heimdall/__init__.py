@@ -1,11 +1,8 @@
 import typer
+from heimdall.bench import app as bench_app
 
 app = typer.Typer()
+app.add_typer(bench_app, name = "bench")
 
-# find sub typers under behcnarmker/<sub-dir>/bench.py
-# app.add_typer(basic_bench_app, name = "basic")
-
-# `perf` as a python context manager
-# from heimdall import perf
-# with perf(perf_config):
-#     bench.run(bench_config)
+if __name__ == "__main__":
+    app()

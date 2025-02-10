@@ -87,6 +87,3 @@ def plot(bench_name: str, config: str):
     logger.success(f"Plot {bench_name} benchmark successfully")
     pass
 
-
-if __name__ == "__main__":
-    app()
