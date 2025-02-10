@@ -17,8 +17,7 @@ def build(config: str):
         runner.build("100")
         runner.build("200")
     else:
-        logger.error(f"this is the unknown task: {config}")
-    pass
+        raise Exception(f"this is the unknown task: {config}")
 
 
 @app.command()
@@ -32,17 +31,16 @@ def run(config: str):
         runner.run("100")
         runner.run("200")
     else:
-        logger.error(f"this is the unknown task: {config}")
-    pass
+        raise Exception(f"this is the unknown task: {config}")
 
 
 @app.command()
 def install(config: str):
     logger.info("installing")
-    pass
+    raise Exception("Unimplemented")
 
 
 @app.command
 def plot(config: str):
     logger.info("plotting")
-    pass
+    raise Exception("Unimplemented")

@@ -31,6 +31,7 @@ import typer
 from loguru import logger
 
 from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
+from heimdall.utils.cmd import run_heimdall_sub_cmd
 
 app = typer.Typer()
 
@@ -39,21 +40,22 @@ def build_bw_latency(machine_type, build_type):
 
     if build_type == "release" or build_type == "designtest":
         logger.info(f"Building {build_type} for {machine_type} machine")
-        build_scripts_path = os.path.join(
-            os.path.dirname(__file__),
-            f"../../build/bw_latency_test/{build_type}/build.py",
-        )
     else:
         logger.error("Error: Invalid build type")
         sys.exit(1)
 
-    if not os.path.isfile(build_scripts_path):
-        logger.error("Error: Build script not found")
-        sys.exit(1)
-
     if machine_type == "x86" or machine_type == "arm" or machine_type == "mockup":
         logger.info(f"Running build script for {machine_type} machine")
-        run_as_sudo(f"python3 {build_scripts_path} -m {machine_type}")
+        run_heimdall_sub_cmd(
+            " ".join(
+                [
+                    "basic-performance build bw-latency-test release run-build",
+                    f"--arch {machine_type}",
+                ]
+            ),
+            sudo=True,
+        )
+        # run_as_sudo(f"python3 {build_scripts_path} -m {machine_type}")
     else:
         logger.error("Error: Invalid machine type")
         sys.exit(1)

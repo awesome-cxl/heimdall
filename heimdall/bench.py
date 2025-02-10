@@ -5,7 +5,7 @@ from loguru import logger
 import benchmark.basic_performance.bench as basic_perf
 import benchmark.llm_bench.bench as llm_bench
 
-app = typer.Typer()
+app = typer.Typer(help="Run benchmarks")
 
 
 @app.command()
@@ -86,4 +86,3 @@ def plot(bench_name: str, config: str):
     bench(config)
     logger.success(f"Plot {bench_name} benchmark successfully")
     pass
-

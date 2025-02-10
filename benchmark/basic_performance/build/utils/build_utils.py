@@ -33,6 +33,7 @@ import socket
 import sys
 from invoke import run
 from loguru import logger
+from heimdall.utils.path import chdir
 
 
 def load_global_env():
@@ -44,6 +45,7 @@ def load_global_env():
         sys.exit(1)
     load_dotenv(dotenv_path=path)
     logger.info(f"core num: {os.getenv('core_num_per_socker')}")
+
 
 def clean(build_dir):
     if os.path.exists(build_dir):
@@ -59,23 +61,29 @@ def get_threads_num():
     return min(16, multiprocessing.cpu_count())
 
 
-def run_cmake(build_dir):
+def run_cmake(build_dir, arch):
     load_global_env()
-    os.chdir(build_dir)
-    args = parse_args()
-    if args.m in ["x86", "X86"]:
-        machine_type = 1
-    elif args.m in ["arm", "ARM"]:
-        machine_type = 2
-    elif args.m in ["mockup", "MOCKUP"]:
-        machine_type = 3
-    else:
-        raise ValueError(f"Unknown machine type: {args.m}")
-    run(
-        f"cmake .. -DCMAKE_BUILD_TYPE=Release -DMACHINE_TYPE={machine_type} -DCORE_NUM_PER_SOCKET={os.getenv('core_num_per_socker')}"
-        , echo=True)
-    numbers = get_threads_num()
-    run(f"cmake --build . -j{numbers}", echo=True)
+    with chdir(build_dir):
+        if arch in ["x86", "X86"]:
+            machine_type = 1
+        elif arch in ["arm", "ARM"]:
+            machine_type = 2
+        elif arch in ["mockup", "MOCKUP"]:
+            machine_type = 3
+        else:
+            raise ValueError(f"Unknown machine type: {arch}")
+        run(
+            " ".join(
+                [
+                    "cmake .. -DCMAKE_BUILD_TYPE=Release",
+                    f"-DMACHINE_TYPE={machine_type}",
+                    f"-DCORE_NUM_PER_SOCKET={os.getenv('core_num_per_socker')}",
+                ]
+            ),
+            echo=True,
+        )
+        numbers = get_threads_num()
+        run(f"cmake --build . -j{numbers}", echo=True)
 
 
 def parse_args():
@@ -85,7 +93,7 @@ def parse_args():
     return args
 
 
-def run_build(build_dir):
+def run_build(build_dir, arch):
     clean(build_dir)
     make_build_dir(build_dir)
-    run_cmake(build_dir)
+    run_cmake(build_dir, arch)

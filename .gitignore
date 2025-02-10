@@ -1,5 +1,6 @@
 build/
 dist/
+./heimdall
 
 ### C ###
 # Prerequisites

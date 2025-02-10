@@ -27,6 +27,9 @@
 import os
 import subprocess
 import sys
+import typer
+
+app = typer.Typer()
 
 # Define paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -23,3 +23,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+
+
+import typer
+from benchmark.basic_performance.build.bw_latency_test.release import app as release_app
+
+app = typer.Typer()
+app.add_typer(release_app, name="release")
