@@ -69,7 +69,7 @@ def set_prefetcher_amd(mode):
             cpuinfo_data = cpuinfo.read()
 
         if "cpu family" in cpuinfo_data and "25" in cpuinfo_data:
-            if "model" in cpuinfo_data and "17" in cpuinfo_data:
+            if "model" in cpuinfo_data and ("17" in cpuinfo_data or "144" in cpuinfo_data):
                 logger.info("Detected Zen4 CPU")
                 if mode == "off":
                     run_as_sudo("wrmsr -a 0xc0011020 0x4400000000000")
