@@ -135,7 +135,7 @@ def set_prefetcher(mode):
         with open("/proc/cpuinfo", "r") as cpuinfo:
             cpuinfo_data = cpuinfo.read()
 
-        if "AMD Ryzen" in cpuinfo_data or "AMD EPYC" in cpuinfo_data:
+        if "AMD" in cpuinfo_data:
             set_prefetcher_amd(mode)
         else:
             set_prefetcher_intel(mode)
