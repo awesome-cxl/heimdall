@@ -13,6 +13,8 @@ jobs:
       USER_PASSWORD: "does_not_matter" # GitHub action should run `sudo` without password
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
       - name: Set up dependencies
         uses: ./.github/actions/setup-heimdall
@@ -36,6 +38,8 @@ jobs:
       USER_PASSWORD: "does_not_matter" # GitHub action should run `sudo` without password
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
       - name: Set up dependencies
         uses: ./.github/actions/setup-heimdall
