@@ -116,3 +116,35 @@ def get_architecture():
     else:
         logger.error(f"unknown architecture: {arch}")
         exit(1)
+
+def get_cpu_number(machine_type) :
+    if machine_type in ["x86"]:
+        result = run("lscpu | grep 'Core(s) per socket:' | awk '{print $4}'", hide=True, warn=True)
+    elif machine_type in ["arm"]:
+        result = run("lscpu | grep 'Core(s) per cluster:' | awk '{print $4}'", hide=True, warn=True)
+    else:
+        logger.error(f"unknown machine type: {machine_type}")
+        exit(1)
+
+    if result.ok:
+        logger.info(f"CPU number: {result.stdout.strip()}")
+        return int(result.stdout.strip())
+    else:
+        logger.error(f"Failed to get CPU number: {result.stderr}")
+        exit(1)
+
+def get_thread_per_core(machine_type) :
+    if machine_type in ["x86"]:
+        result = run("lscpu | grep 'Thread(s) per core:' | awk '{print $4}'", hide=True, warn=True)
+    elif machine_type in ["arm"]:
+        result = run("lscpu | grep 'Thread(s) per core:' | awk '{print $4}'", hide=True, warn=True)
+    else:
+        logger.error(f"unknown machine type: {machine_type}")
+        exit(1)
+
+    if result.ok:
+        logger.info(f"Thread per core: {result.stdout.strip()}")
+        return int(result.stdout.strip())
+    else:
+        logger.error(f"Failed to get Thread per core: {result.stderr}")
+        exit(1)

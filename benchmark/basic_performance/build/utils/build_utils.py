@@ -34,6 +34,56 @@ from heimdall.utils.cmd import run
 from pathlib import Path
 
 
+def get_numa_node_num(machine_type):
+    if machine_type in ["x86"]:
+        result = run("lscpu | grep 'NUMA node(s):' | awk '{print $3}'", hide=True, warn=True)
+    elif machine_type in ["arm"]:
+        logger.error("ARM architecture does not support NUMA node")
+        exit(1)
+    else:
+        logger.error(f"unknown machine type: {machine_type}")
+        exit(1)
+
+    if result.ok:
+        logger.info(f"NUMA node number: {result.stdout.strip()}")
+        return int(result.stdout.strip())
+    else:
+        logger.error(f"Failed to get NUMA node number: {result.stderr}")
+        exit(1)
+
+def get_socket_number(machine_type):
+    if machine_type in ["x86"]:
+        result = run("lscpu | grep 'Socket(s):' | awk '{print $2}'", hide=True, warn=True)
+    elif machine_type in ["arm"]:
+        logger.error("ARM architecture does not support Socket number")
+        exit(1)
+    else:
+        logger.error(f"unknown machine type: {machine_type}")
+        exit(1)
+    if result.ok:
+        logger.info(f"Socket number: {result.stdout.strip()}")
+        return int(result.stdout.strip())
+    else:
+        logger.error(f"Failed to get Socket number: {result.stderr}")
+        exit(1)
+
+
+def get_cpu_number(machine_type) :
+    if machine_type in ["x86"]:
+        result = run("lscpu | grep 'Core(s) per socket:' | awk '{print $4}'", hide=True, warn=True)
+    elif machine_type in ["arm"]:
+        result = run("lscpu | grep 'Core(s) per cluster:' | awk '{print $4}'", hide=True, warn=True)
+    else:
+        logger.error(f"unknown machine type: {machine_type}")
+        exit(1)
+
+    if result.ok:
+        logger.info(f"CPU number: {result.stdout.strip()}")
+        return int(result.stdout.strip())
+    else:
+        logger.error(f"Failed to get CPU number: {result.stderr}")
+        exit(1)
+
 def load_global_env():
     host_name = socket.gethostname()
     path = (
@@ -47,7 +97,6 @@ def load_global_env():
         logger.error(f"Error: {path} not found")
         raise Exception("Error please make machine env file first @ utils/env_files")
     load_dotenv(dotenv_path=path)
-    logger.info(f"core num: {os.getenv('core_num_per_socker')}")
 
 
 def clean(build_dir: Path, sudo: bool = False):
@@ -78,12 +127,15 @@ def run_cmake(build_dir: Path, arch: str, sudo: bool = False):
             machine_type = 3
         else:
             raise ValueError(f"Unknown machine type: {arch}")
+        core_num_per_socket = get_cpu_number(arch)
+        socket_num = get_socket_number(arch)
         run(
             " ".join(
                 [
                     "cmake .. -DCMAKE_BUILD_TYPE=Release",
                     f"-DMACHINE_TYPE={machine_type}",
-                    f"-DCORE_NUM_PER_SOCKET={os.getenv('core_num_per_socker')}",
+                    f"-DCORE_NUM_PER_SOCKET={core_num_per_socket}",
+                    f"-DMAX_SOCKET_NUM={socket_num}"
                 ]
             ),
             sudo=sudo,

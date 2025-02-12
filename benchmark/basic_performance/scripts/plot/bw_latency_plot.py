@@ -33,15 +33,15 @@ from loguru import logger
 
 # Define plotting functions
 def plot_bandwidth_vs_latency_and_save(df, output_file, title_prefix):
-    grouped = df.groupby(["Device Type", "Access Type"])
+    grouped = df.groupby(["Access Type"])
     plt.figure(figsize=(10, 6))
-    for (device_type, access_type), group in grouped:
+    for (access_type), group in grouped:
         total_bandwidth_gb = group["Total Bandwidth (MiB/s)"] / 1024
         plt.plot(
             total_bandwidth_gb,
             group["Measured Latency (ns)"],
             marker="o",
-            label=f"{device_type} - {access_type}",
+            label=f"{access_type}",
         )
     plt.title(f"{title_prefix}: Measured Latency vs Total Bandwidth")
     plt.xlabel("Total Bandwidth (GiB/s)")
@@ -53,14 +53,14 @@ def plot_bandwidth_vs_latency_and_save(df, output_file, title_prefix):
 
 
 def plot_threads_vs_bandwidth_and_save(df, output_file, title_prefix):
-    grouped = df.groupby(["Device Type", "Access Type"])
+    grouped = df.groupby(["Access Type"])
     plt.figure(figsize=(10, 6))
-    for (device_type, access_type), group in grouped:
+    for (access_type), group in grouped:
         plt.plot(
             group["Threads"],
             group["Total Bandwidth (MiB/s)"] / 1024,  # Convert to GB/s
             marker="o",
-            label=f"{device_type} - {access_type}",
+            label=f"{access_type}",
         )
     plt.title(f"{title_prefix}: Threads vs Total Bandwidth")
     plt.xlabel("Threads")
@@ -72,14 +72,14 @@ def plot_threads_vs_bandwidth_and_save(df, output_file, title_prefix):
 
 
 def plot_threads_vs_latency_and_save(df, output_file, title_prefix):
-    grouped = df.groupby(["Device Type", "Access Type"])
+    grouped = df.groupby(["Access Type"])
     plt.figure(figsize=(10, 6))
-    for (device_type, access_type), group in grouped:
+    for (access_type), group in grouped:
         plt.plot(
             group["Threads"],
             group["Measured Latency (ns)"],
             marker="o",
-            label=f"{device_type} - {access_type}",
+            label=f"{access_type}",
         )
     plt.title(f"{title_prefix}: Threads vs Measured Latency")
     plt.xlabel("Threads")

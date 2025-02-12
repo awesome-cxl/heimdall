@@ -64,10 +64,10 @@ std::shared_ptr<JobInfo> InputParserForBW::parse(const fs::path &input_file) {
       yaml_file["lt_pattern_access_size"].as<uint64_t>();
   job_info->lt_pattern_stride_size =
       yaml_file["lt_pattern_stride_size"].as<uint64_t>();
-  job_info->access_type =
-      static_cast<AccessType>(yaml_file["access_type"].as<uint32_t>());
-  job_info->device_type =
-      static_cast<DeviceType>(yaml_file["device_type"].as<uint32_t>());
+  job_info->numa_id =
+      static_cast<NumaId>(yaml_file["numa_type"].as<uint32_t>());
+  job_info->socket_id =
+      static_cast<SocketId>(yaml_file["socket_type"].as<uint32_t>());
   job_info->delay = yaml_file["delay"].as<uint64_t>();
   job_info->ldst_type =
       static_cast<LoadStoreType>(yaml_file["loadstore_type"].as<uint32_t>());

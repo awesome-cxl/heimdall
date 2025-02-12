@@ -1,14 +1,10 @@
 job_id: 100 # enum class JobId : uint32_t  @ src/core/system_define.h
-thread_num_array: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
-#thread_num_array: [4]
+thread_num_type: 1 # 0: user defined, 1: auto, sweep the all the thread number, this case, thread_num_array is ignored
+thread_num_array: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
 pattern_iteration_array: [2]
 thread_buffer_size array_megabyte: [512] #MiB unit
-access_type_array: # enum class AccessType : uint32_t @ src/core/system_define.h
-  - 0 # 0: Local Node
-  - 1 # 1: Remote Node
-memory_device_array: # enum class DeviceType : uint32_t @ src/core/system_define.h
-  - 0 # 0: CXL
-  - 1 # 1: DIMM
+core_socket_array: [0, 1]
+numa_node_array: [0, 1]
 delay_array:
   - 0
 loadstore_array: # enum class LoadStoreType : uint32_t @ src/core/system_define.h
