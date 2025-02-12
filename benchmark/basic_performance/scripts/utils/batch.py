@@ -69,7 +69,6 @@ def load_global_env():
     logger.info(f"hostname: {host_name}")
     logger.info(f"disabled prefetch: {os.getenv('disable_prefetch')}")
     logger.info(f"boost cpu: {os.getenv('boost_cpu')}")
-    logger.info(f"core num per socket: {os.getenv('core_num_per_socket')}")
 
 
 def prepare_run(task_file, machine_type):

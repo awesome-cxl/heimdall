@@ -128,14 +128,14 @@ def run_cmake(build_dir: Path, arch: str, sudo: bool = False):
         else:
             raise ValueError(f"Unknown machine type: {arch}")
         core_num_per_socket = get_cpu_number(arch)
-        max_numa_node = get_numa_node_num(arch)
+        socket_num = get_socket_number(arch)
         run(
             " ".join(
                 [
                     "cmake .. -DCMAKE_BUILD_TYPE=Release",
                     f"-DMACHINE_TYPE={machine_type}",
                     f"-DCORE_NUM_PER_SOCKET={core_num_per_socket}",
-                    f"-DMAX_NUMA_NODE={max_numa_node}"
+                    f"-DMAX_SOCKET_NUM={socket_num}"
                 ]
             ),
             sudo=sudo,
