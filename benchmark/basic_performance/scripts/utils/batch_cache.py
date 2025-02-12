@@ -183,9 +183,8 @@ def load_global_env():
         / f"{host_name}.env"
     )
     if not os.path.isfile(path):
-        (f"Error: {path} not found")
-        logger.error("Error please make machine env file first @ utils/env_files")
-        sys.exit(1)
+        logger.error(f"Error: {path} not found")
+        raise Exception("Error please make machine env file first @ utils/env_files")
     load_dotenv(dotenv_path=path)
     logger.info(f"hostname: {host_name}")
     logger.info(f"dimm_phys_addr: {os.getenv('dimm_physical_start_addr')}")

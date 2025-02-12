@@ -28,7 +28,6 @@ import multiprocessing
 import os
 from dotenv import load_dotenv
 import socket
-import sys
 from loguru import logger
 from heimdall.utils.path import chdir, get_workspace_path
 from heimdall.utils.cmd import run
@@ -46,8 +45,7 @@ def load_global_env():
     )
     if not os.path.isfile(path):
         logger.error(f"Error: {path} not found")
-        logger.error("Error please make machine env file first @ utils/env_files")
-        sys.exit(1)
+        raise Exception("Error please make machine env file first @ utils/env_files")
     load_dotenv(dotenv_path=path)
     logger.info(f"core num: {os.getenv('core_num_per_socker')}")
 

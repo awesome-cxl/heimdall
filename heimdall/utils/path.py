@@ -29,7 +29,7 @@ def get_executable_path():
         )
         is_standalone = False
 
-    logger.info(f"Current executable path {current_path}")
+    logger.debug(f"Current executable path {current_path}")
 
     return current_path, is_standalone
 
@@ -48,7 +48,7 @@ def get_workspace_path():
     else:
         workspace_path = exec_path.parent.parent.parent
 
-    logger.info(f"Current workspace path is: {workspace_path}")
+    logger.debug(f"Current workspace path is: {workspace_path}")
 
     return workspace_path
 
@@ -58,9 +58,9 @@ def chdir(path: Path):
     origin = Path().absolute()
     target = Path(path).absolute()
     try:
-        logger.info(f"Switching to dir {target}")
+        logger.debug(f"Switching to dir {target}")
         os.chdir(target)
         yield
     finally:
-        logger.info(f"Switching back to dir {origin}")
+        logger.debug(f"Switching back to dir {origin}")
         os.chdir(origin)

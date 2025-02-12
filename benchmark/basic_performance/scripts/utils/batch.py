@@ -64,8 +64,7 @@ def load_global_env():
     )
     if not os.path.isfile(path):
         logger.error(f"Error: {path} not found")
-        logger.error("Error please make machine env file first @ utils/env_files")
-        sys.exit(1)
+        raise Exception("Please make machine env file first @ utils/env_files")
     load_dotenv(dotenv_path=path)
     logger.info(f"hostname: {host_name}")
     logger.info(f"disabled prefetch: {os.getenv('disable_prefetch')}")

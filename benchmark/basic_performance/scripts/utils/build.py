@@ -42,16 +42,6 @@ def build_bw_latency(machine_type, build_type):
 
     if machine_type == "x86" or machine_type == "arm" or machine_type == "mockup":
         logger.info(f"Running build script for {machine_type} machine")
-        # run_heimdall_sub_cmd(
-        #     " ".join(
-        #         [
-        #             "basic-performance build bw-latency-test release build",
-        #             f"--arch {machine_type}",
-        #         ]
-        #     ),
-        #     sudo=True,
-        # )
-        # run_as_sudo(f"python3 {build_scripts_path} -m {machine_type}")
         from benchmark.basic_performance.build.bw_latency_test.release import build
 
         build(machine_type)

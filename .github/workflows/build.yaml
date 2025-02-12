@@ -1,0 +1,51 @@
+name: Build all benchmarks
+on: push
+jobs:
+  build-poetry:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"] # Maybe also some other versions like 3.13
+        poetry-version: ["latest"] # Maybe also "main" and "2.0.0"
+        os: [ubuntu-latest] # Maybe also macos-latest, windows-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      USER_PASSWORD: "does_not_matter" # GitHub action should run `sudo` without password
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        uses: ./.github/actions/setup-heimdall
+        with:
+          python-version: ${{ matrix.python-version }}
+          poetry-version: ${{ matrix.poetry-version }}
+
+      - name: "[Poetry] Build basic performance bandwidth tests"
+        run: poetry run heimdall bench build basic bw
+
+
+  build-standalone:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"] # Maybe also some other versions like 3.13
+        poetry-version: ["latest"] # Maybe also "main" and "2.0.0"
+        os: [ubuntu-latest] # Maybe also macos-latest, windows-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      USER_PASSWORD: "does_not_matter" # GitHub action should run `sudo` without password
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        uses: ./.github/actions/setup-heimdall
+        with:
+          python-version: ${{ matrix.python-version }}
+          poetry-version: ${{ matrix.poetry-version }}
+
+      - name: Build standalone heimdall binary
+        run: make standalone
+        shell: bash
+
+      - name: "Build basic performance bandwidth tests"
+        run: ./dist/heimdall bench build basic bw
