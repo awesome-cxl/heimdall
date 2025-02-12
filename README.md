@@ -131,15 +131,17 @@ For cache analysis test
 For bandwidth vs latency test
 
 ```bash
-$ cd {top directory}/heimdall
-$ poetry run python3 ./bench.py all basic bw
+$ cd {top directory}
+$ poetry run heimdall bench build basic bw
+$ poetry run heimdall bench run basic bw
 ```
 
 For cache analysis test
 
 ```bash
-$ cd {top directory}/heimdall
-$ poetry run python3 ./bench.py all basic cache
+$ cd {top directory}
+$ poetry run heimdall bench build basic cache
+$ poetry run heimdall bench run basic cache
 ```
 
 ### 6. Check the result
