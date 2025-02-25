@@ -13,7 +13,7 @@ Activate the poetry python environement and execute the heimdall command line.
 ```shel
 $ poetry install
 
-$ heimdall --help
+$ poetry run heimdall --help
 ```
 
 When developing code, use pre-commit to format commits:
