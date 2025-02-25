@@ -1,0 +1,165 @@
+#!/bin/bash
+
+source_file=lockfree_test.cc
+exec_file=lockfree_test
+perf_event=br_inst_retired.all_branches,br_inst_retired.cond,br_inst_retired.cond_taken
+
+ds_type=-DTEST_MAP
+map_type=-DUSE_LIBCDS_MAP
+
+mkdir -p results
+timestamp=$(date +"%Y%m%d_%H%M%S")
+# result_dir=results/$timestamp
+result_dir=results
+mkdir -p $result_dir
+
+export PKG_CONFIG_PATH=$(realpath libs/folly/folly/lib/pkgconfig):$PKG_CONFIG_PATH
+export PKG_CONFIG_PATH=$(realpath libs/folly/$(ls libs/folly/ | grep fmt)/lib/pkgconfig):$PKG_CONFIG_PATH
+
+run_with_perf() {
+    echo "Start time: $(date)" > $result_file
+    for i in {1..10}; do
+        echo "Iteration $i" >> $result_file
+        # perf stat -e $perf_event ./$exec_file >> $result_file 2>&1
+        ./$exec_file >> $result_file 2>&1
+        echo "" >> $result_file
+    done
+}
+
+run_same_local_DIMM() {
+    result_file=$result_dir/same_local_DIMM.log
+    g++ -std=c++17 \
+        $(pkg-config --static --cflags fmt) \
+        $(pkg-config --static --cflags libfolly) \
+        -o $exec_file $source_file\
+        $(pkg-config --static --libs libfolly) \
+        $(pkg-config --static --libs fmt) \
+        -lcds -lnuma \
+        -DSETTER_CORE=0 -DGETTER_CORE=1 \
+        -DSETTER_NUMA_NODE=0 -DGETTER_NUMA_NODE=0 -DDS_NUMA_NODE=0 \
+        $ds_type $map_type
+    run_with_perf
+}
+
+run_same_remote_DIMM() {
+    result_file=$result_dir/same_remote_DIMM.log
+    g++ -std=c++23 -O2 -pthread \
+        $(pkg-config --static --cflags fmt) \
+        $(pkg-config --static --cflags libfolly) \
+        -o $exec_file $source_file\
+        $(pkg-config --static --libs libfolly) \
+        $(pkg-config --static --libs fmt) \
+        -lcds -lnuma \
+        -DSETTER_CORE=0 -DGETTER_CORE=1 \
+        -DSETTER_NUMA_NODE=0 -DGETTER_NUMA_NODE=0 -DDS_NUMA_NODE=1 \
+        $ds_type $map_type
+    run_with_perf
+}
+
+run_same_local_CXL() {
+    result_file=$result_dir/same_local_CXL.log
+    g++ -std=c++17 \
+        $(pkg-config --static --cflags fmt) \
+        $(pkg-config --static --cflags libfolly) \
+        -o $exec_file $source_file\
+        $(pkg-config --static --libs libfolly) \
+        $(pkg-config --static --libs fmt) \
+        -lcds -lpthread -lnuma \
+        -DSETTER_CORE=0 -DGETTER_CORE=1 \
+        -DSETTER_NUMA_NODE=0 -DGETTER_NUMA_NODE=0 -DDS_NUMA_NODE=2 \
+        $ds_type $map_type
+    run_with_perf
+}
+
+run_same_remote_CXL() {
+    result_file=$result_dir/same_remote_CXL.log
+    g++ -std=c++17 \
+        $(pkg-config --static --cflags fmt) \
+        $(pkg-config --static --cflags libfolly) \
+        -o $exec_file $source_file\
+        $(pkg-config --static --libs libfolly) \
+        $(pkg-config --static --libs fmt) \
+        -lcds -lpthread -lnuma \
+        -DSETTER_CORE=20 -DGETTER_CORE=21 \
+        -DSETTER_NUMA_NODE=1 -DGETTER_NUMA_NODE=1 -DDS_NUMA_NODE=2 \
+        $ds_type $map_type
+    run_with_perf
+}
+
+run_diff_setter_DIMM() {
+    result_file=$result_dir/diff_setter_DIMM.log
+    g++ -std=c++17 \
+        $(pkg-config --static --cflags fmt) \
+        $(pkg-config --static --cflags libfolly) \
+        -o $exec_file $source_file\
+        $(pkg-config --static --libs libfolly) \
+        $(pkg-config --static --libs fmt) \
+        -lcds -lpthread -lnuma \
+        -DSETTER_CORE=0 -DGETTER_CORE=20 \
+        -DSETTER_NUMA_NODE=0 -DGETTER_NUMA_NODE=1 -DDS_NUMA_NODE=0 \
+        $ds_type $map_type
+    run_with_perf
+}
+
+run_diff_getter_DIMM() {
+    result_file=$result_dir/diff_getter_DIMM.log
+    g++ -std=c++17 \
+        $(pkg-config --static --cflags fmt) \
+        $(pkg-config --static --cflags libfolly) \
+        -o $exec_file $source_file\
+        $(pkg-config --static --libs libfolly) \
+        $(pkg-config --static --libs fmt) \
+        -lcds -lpthread -lnuma \
+        -DSETTER_CORE=0 -DGETTER_CORE=20 \
+        -DSETTER_NUMA_NODE=0 -DGETTER_NUMA_NODE=1 -DDS_NUMA_NODE=1 \
+        $ds_type $map_type
+    run_with_perf
+}
+
+run_diff_setter_CXL() {
+    result_file=$result_dir/diff_setter_CXL.log
+    g++ -std=c++17 \
+        $(pkg-config --static --cflags fmt) \
+        $(pkg-config --static --cflags libfolly) \
+        -o $exec_file $source_file\
+        $(pkg-config --static --libs libfolly) \
+        $(pkg-config --static --libs fmt) \
+        -lcds -lpthread -lnuma \
+        -DSETTER_CORE=0 -DGETTER_CORE=20 \
+        -DSETTER_NUMA_NODE=0 -DGETTER_NUMA_NODE=1 -DDS_NUMA_NODE=2 \
+        $ds_type $map_type
+    run_with_perf
+}
+
+
+run_diff_getter_CXL() {
+    result_file=$result_dir/diff_getter_CXL.log
+    g++ -std=c++17 \
+        $(pkg-config --static --cflags fmt) \
+        $(pkg-config --static --cflags libfolly) \
+        -o $exec_file $source_file\
+        $(pkg-config --static --libs libfolly) \
+        $(pkg-config --static --libs fmt) \
+        -lcds -lpthread -lnuma \
+        -DSETTER_CORE=20 -DGETTER_CORE=0 \
+        -DSETTER_NUMA_NODE=1 -DGETTER_NUMA_NODE=0 -DDS_NUMA_NODE=2 \
+        $ds_type $map_type
+    run_with_perf
+}
+
+case $1 in
+    all)
+        run_same_local_DIMM
+        run_same_remote_DIMM
+        run_same_local_CXL
+        run_same_remote_CXL
+        run_diff_setter_DIMM
+        run_diff_getter_DIMM
+        run_diff_setter_CXL
+        run_diff_getter_CXL
+        python3 ./plot.py
+        ;;
+    *)
+        echo "Invalid Input! Options: all, local_DIMM, remote_DIMM, local_CXL, remote_CXL"
+        ;;
+esac

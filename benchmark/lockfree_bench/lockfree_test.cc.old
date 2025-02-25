@@ -1,0 +1,339 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <emmintrin.h>
+#include <numa.h>
+#include <numaif.h>
+#include <pthread.h>
+#include <sched.h>
+#include <sys/prctl.h>
+#include <unistd.h>
+
+#include <atomic>
+#include <cerrno>
+#include <chrono>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <iostream>
+#include <random>
+#include <thread>
+
+#include <boost/lockfree/queue.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
+
+#include <folly/AtomicHashMap.h>
+
+#include <cds/container/michael_kvlist_hp.h> // MichaelKVList for gc::HP
+#include <cds/container/michael_map.h>       // MichaelHashMap
+#include <cds/gc/hp.h>                       // for cds::HP (Hazard Pointer) SMR
+#include <cds/init.h> // for cds::Initialize and cds::Terminate
+
+#ifndef LOOP_SIZE
+#define LOOP_SIZE 1000000
+#endif
+
+#ifndef SIZE_MB
+#define SIZE_MB 8192
+#endif
+
+#ifndef SETTER_CORE
+#define SETTER_CORE 0
+#endif
+
+#ifndef GETTER_CORE
+#define GETTER_CORE 1
+#endif
+
+#ifndef DS_NUMA_NODE
+#define DS_NUMA_NODE 0
+#endif
+
+#ifndef SETTER_NUMA_NODE
+#define SETTER_NUMA_NODE 0
+#endif
+
+#ifndef GETTER_NUMA_NODE
+#define GETTER_NUMA_NODE 0
+#endif
+
+// #define TEST_QUEUE
+#define TEST_MAP
+
+// #define USE_BOOST_SPSC_QUEUE
+// #define USE_FOLLY_MAP
+#define USE_LIBCDS_MAP
+
+#ifdef TEST_QUEUE
+
+#ifdef USE_BOOST_SPSC_QUEUE
+typedef boost::lockfree::spsc_queue<uint64_t> q_t;
+#endif
+
+q_t *q;
+#endif
+
+#ifdef TEST_MAP
+
+#ifdef USE_FOLLY_MAP
+typedef folly::AtomicHashMap<uint64_t, uint64_t> map_t;
+#endif
+
+#ifdef USE_LIBCDS_MAP
+// List traits based on std::less predicate
+struct list_traits : public cds::container::michael_list::traits {
+  typedef std::less<uint64_t> less;
+};
+// Ordered list
+typedef cds::container::MichaelKVList<cds::gc::HP, uint64_t, uint64_t,
+                                      list_traits>
+    int2int_list;
+// Map traits
+struct map_traits : public cds::container::michael_map::traits {
+  struct hash {
+    size_t operator()(uint64_t i) const {
+      return cds::opt::v::hash<uint64_t>()(i);
+    }
+  };
+};
+typedef cds::container::MichaelHashMap<cds::gc::HP, int2int_list, map_traits>
+    map_t;
+#endif
+
+map_t *m;
+#endif
+
+uint64_t *setter_seq;
+uint64_t *getter_seq;
+
+decltype(std::chrono::steady_clock::now()) setter_start;
+decltype(std::chrono::steady_clock::now()) getter_start;
+decltype(std::chrono::steady_clock::now()) setter_end;
+decltype(std::chrono::steady_clock::now()) getter_end;
+
+void set_thread_affinity(pthread_t thread, int core_id) {
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(core_id, &cpuset);
+
+  int rc = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+  if (rc != 0) {
+    char error_msg[256];
+    strerror_r(rc, error_msg, sizeof(error_msg));
+    std::cerr << "CPU affinity failed: " << error_msg << "\n";
+  }
+}
+
+void bind_numa_node(int node) {
+  auto mask = numa_allocate_nodemask();
+  numa_bitmask_clearall(mask);
+  numa_bitmask_setbit(mask, node);
+  numa_set_membind(mask);
+}
+
+#ifdef TEST_QUEUE
+void queue_setter() {
+  set_thread_affinity(pthread_self(), SETTER_CORE);
+  bind_numa_node(DS_NUMA_NODE);
+
+  setter_start = std::chrono::steady_clock::now();
+
+  for (size_t i = 0; i < (size_t)LOOP_SIZE; ++i) {
+    while (true) {
+      if (q->push((uint64_t)i))
+        break;
+    }
+  }
+
+  setter_end = std::chrono::steady_clock::now();
+}
+
+void queue_getter() {
+  set_thread_affinity(pthread_self(), GETTER_CORE);
+
+  uint64_t val;
+
+  getter_start = std::chrono::steady_clock::now();
+  for (size_t i = 0; i < (size_t)LOOP_SIZE; ++i) {
+    while (true) {
+      if (q->pop(val))
+        break;
+    }
+  }
+  getter_end = std::chrono::steady_clock::now();
+}
+#endif
+
+#ifdef TEST_MAP
+void map_setter() {
+  set_thread_affinity(pthread_self(), SETTER_CORE);
+  bind_numa_node(DS_NUMA_NODE);
+
+#ifdef USE_LIBCDS_MAP
+  // Attach the thread to libcds infrastructure
+  cds::threading::Manager::attachThread();
+#endif
+
+  setter_start = std::chrono::steady_clock::now();
+
+  for (size_t i = 0; i < (size_t)LOOP_SIZE; ++i) {
+
+#ifdef USE_FOLLY_MAP
+    auto ret = m->insert(std::make_pair(setter_seq[i], setter_seq[i]));
+    if (!ret.second) { // key already exists, increment val by 1
+      ret.first->second += 1;
+    }
+#endif
+
+#ifdef USE_LIBCDS_MAP
+    m->update(setter_seq[i], [](bool ifInserted, map_t::value_type &kv) {
+      if (!ifInserted) { // key already exists, increment val by 1
+        kv.second = kv.second + 1;
+      }
+    });
+#endif
+  }
+
+  setter_end = std::chrono::steady_clock::now();
+
+#ifdef USE_LIBCDS_MAP
+  // Detach thread when terminating
+  cds::threading::Manager::detachThread();
+#endif
+}
+
+void map_getter() {
+  set_thread_affinity(pthread_self(), GETTER_CORE);
+
+#ifdef USE_LIBCDS_MAP
+  // Attach the thread to libcds infrastructure
+  cds::threading::Manager::attachThread();
+#endif
+
+  getter_start = std::chrono::steady_clock::now();
+
+  for (size_t i = 0; i < (size_t)LOOP_SIZE; ++i) {
+
+#ifdef USE_FOLLY_MAP
+    auto ret = m->find(getter_seq[i]);
+#endif
+
+#ifdef USE_LIBCDS_MAP
+    {
+      map_t::guarded_ptr gp(m->get(getter_seq[i]));
+      // if (gp) {
+      //   std::cout << gp->first << ": " << gp->second << std::endl;
+      // }
+    } // Destructor of guarded_ptr releases internal HP guard
+#endif
+  }
+
+  getter_end = std::chrono::steady_clock::now();
+
+#ifdef USE_LIBCDS_MAP
+  // Detach thread when terminating
+  cds::threading::Manager::detachThread();
+#endif
+}
+#endif
+
+int main() {
+  // disable transparent huge page table
+  if (prctl(PR_SET_THP_DISABLE, 1, 0, 0, 0) == -1) {
+    std::cerr << "prctl(PR_SET_THP_DISABLE) failed" << std::endl;
+    return 1;
+  }
+
+  bind_numa_node(DS_NUMA_NODE);
+
+#ifdef TEST_QUEUE
+  q = static_cast<q_t *>(numa_alloc_onnode(sizeof(q_t), DS_NUMA_NODE));
+  new (q) q_t((size_t)SIZE_MB << 20 / sizeof(uint64_t));
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  std::thread set_thread(queue_setter);
+  std::thread get_thread(queue_getter);
+
+  set_thread.join();
+  get_thread.join();
+
+  auto end = std::chrono::high_resolution_clock::now();
+
+  numa_free(q, sizeof(q_t));
+
+  std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start)
+                   .count()
+            << " ns" << std::endl;
+#endif
+
+#ifdef TEST_MAP
+#ifdef USE_LIBCDS_MAP
+  // Initialize libcds
+  cds::Initialize();
+  {
+    cds::gc::HP hpGC;
+    cds::threading::Manager::attachThread();
+#endif
+
+    size_t map_entries_num = ((size_t)SIZE_MB << 20) / (sizeof(uint64_t) * 2);
+    std::cout << "SIZE_MB: " << SIZE_MB << std::endl;
+    std::cout << "map_entries_num: " << map_entries_num << std::endl;
+    m = static_cast<map_t *>(numa_alloc_onnode(sizeof(map_t), DS_NUMA_NODE));
+
+#ifdef USE_FOLLY_MAP
+    new (m) map_t(map_entries_num);
+#endif
+#ifdef USE_LIBCDS_MAP
+    new (m) map_t(map_entries_num, 1);
+#endif
+
+    for (size_t i = 0; i < map_entries_num; ++i) {
+#ifdef USE_FOLLY_MAP
+      m->insert(std::make_pair((uint64_t)i, (uint64_t)i));
+#endif
+#ifdef USE_LIBCDS_MAP
+      m->insert((uint64_t)i, (uint64_t)i);
+#endif
+    }
+
+    setter_seq = static_cast<uint64_t *>(
+        numa_alloc_onnode(LOOP_SIZE * sizeof(uint64_t), SETTER_NUMA_NODE));
+    getter_seq = static_cast<uint64_t *>(
+        numa_alloc_onnode(LOOP_SIZE * sizeof(uint64_t), GETTER_NUMA_NODE));
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint64_t> distrib(0, map_entries_num);
+
+    for (size_t i = 0; i < (size_t)LOOP_SIZE; ++i) {
+      setter_seq[i] = distrib(gen);
+      getter_seq[i] = distrib(gen);
+    }
+
+    std::thread set_thread(map_setter);
+    std::thread get_thread(map_getter);
+
+    set_thread.join();
+    get_thread.join();
+
+    numa_free(m, sizeof(map_t));
+
+#ifdef USE_LIBCDS_MAP
+  }
+
+  // Terminate libcds
+  cds::Terminate();
+#endif
+#endif
+
+  auto start = std::min(setter_start, getter_start);
+  auto end = std::max(setter_end, getter_end);
+
+  std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start)
+                   .count()
+            << " ns" << std::endl;
+
+  return 0;
+}
