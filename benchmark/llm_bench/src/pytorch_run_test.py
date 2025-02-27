@@ -25,7 +25,7 @@ generator = Llama.build(
 device = torch.device("cpu")
 generator.model.to(device)
 
-with open("benchmark/llm_bench/dataset/wiki.test.raw", "r", encoding="utf-8") as file:
+with open("benchmark/llm_bench/datasets/wiki.test.raw", "r", encoding="utf-8") as file:
     test_data = file.read()
 
 tokenizer = generator.tokenizer
