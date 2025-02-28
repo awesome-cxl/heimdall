@@ -3,7 +3,7 @@ import shutil  # Added import for shutil
 import subprocess
 
 import typer
-from huggingface_hub import hf_hub_download, snapshot_download
+from huggingface_hub import HfApi, hf_hub_download, snapshot_download
 from loguru import logger
 
 import benchmark.basic_performance.scripts.utils.utils as utils
@@ -11,15 +11,42 @@ import benchmark.basic_performance.scripts.utils.utils as utils
 app = typer.Typer()
 
 
+def check_huggingface_login():
+    """Check if the user is logged into Hugging Face"""
+    try:
+        api = HfApi()
+        user_info = api.whoami()  # Verify login status
+        logger.info(f"Hugging Face login verified: {user_info['name']}")
+        return True
+    except Exception:
+        logger.error("Hugging Face login not detected! Please log in first.")
+        print("\n🔴 Hugging Face login is required. Please run the following command\n")
+        print("    huggingface-cli login\n")
+        exit(1)
+
+
+def ensure_package_installed(package):
+    if not shutil.which(package):
+        logger.info(f"{package} not found. Installing...")
+        subprocess.run(["sudo", "apt-get", "update"], check=True)
+        subprocess.run(["sudo", "apt-get", "install", "-y", package], check=True)
+
+
+def clone_repo(repo_url, clone_dir):
+    if not os.path.exists(clone_dir):
+        subprocess.run(["git", "clone", repo_url, clone_dir], check=True)
+    else:
+        logger.info(f"{clone_dir} already exists. Skipping clone.")
+
+
 @app.command()
 def install(config: str):
     logger.info("installing")
+    # Check if the user is logged into Hugging Face before proceeding
+    check_huggingface_login()
 
     # Ensure numactl is installed
-    if not shutil.which("numactl"):
-        logger.info("numactl not found. Installing numactl...")
-        subprocess.run(["sudo", "apt-get", "update"], check=True)
-        subprocess.run(["sudo", "apt-get", "install", "-y", "numactl"], check=True)
+    ensure_package_installed("numactl")
 
     # Setup directories for models and datasets using the globally imported os
     base_dir = os.getcwd()
@@ -137,11 +164,12 @@ def install(config: str):
             logger.info(f"Moved contents of 'original/' to {custom_model_dir}")
 
     elif config in ["vllm"]:
-        # Clone the VLLM repository directly into a folder named "vllm"
-        repo_url = "https://github.com/vllm-project/vllm.git"
-        vllm_dir = os.path.join(os.getcwd(), "benchmark/llm_bench/vllm")
+        current_dir = os.getcwd()
+        llm_bench_dir = os.path.join(current_dir, "benchmark/llm_bench")
+        vllm_dir = os.path.join(llm_bench_dir, "vllm")
+        vllm_url = "https://github.com/vllm-project/vllm.git"
         if not os.path.exists(vllm_dir):
-            subprocess.run(["git", "clone", repo_url, vllm_dir], check=True)
+            clone_repo(vllm_url, vllm_dir)
         else:
             logger.info(f"{vllm_dir} already exists. Skipping clone.")
         machine = utils.get_architecture()
@@ -206,7 +234,7 @@ def install(config: str):
             # Replace VLLM_TARGET_DEVICE assignment to use "cpu"
             content = re.sub(
                 r'VLLM_TARGET_DEVICE: str = "cuda"',
-                'VLLM_TARGET_DEVICE: str = "CPU"',
+                'VLLM_TARGET_DEVICE: str = "cpu"',
                 content,
             )
 
@@ -214,7 +242,9 @@ def install(config: str):
                 f.write(content)
 
             subprocess.run(
-                ["python", os.path.join(vllm_dir, "setup.py"), "install"], check=True
+                ["python", os.path.join(vllm_dir, "setup.py"), "install"],
+                check=True,
+                cwd=vllm_dir,
             )
         elif machine == "arm":
             subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
@@ -239,6 +269,28 @@ def install(config: str):
                 ],
                 check=True,
             )
+            # python setup.py install
+            import re
+
+            setup_file = os.path.join(vllm_dir, "vllm/envs.py")
+            with open(setup_file, "r") as f:
+                content = f.read()
+
+            # Replace VLLM_TARGET_DEVICE assignment to use "cpu"
+            content = re.sub(
+                r'VLLM_TARGET_DEVICE: str = "cuda"',
+                'VLLM_TARGET_DEVICE: str = "cpu"',
+                content,
+            )
+
+            with open(setup_file, "w") as f:
+                f.write(content)
+
+            subprocess.run(
+                ["python", os.path.join(vllm_dir, "setup.py"), "install"],
+                check=True,
+                cwd=vllm_dir,
+            )
         elif machine == "apple":
             subprocess.run(
                 [
@@ -249,15 +301,16 @@ def install(config: str):
                 ],
                 check=True,
             )
-            subprocess.run(["pip", "install", "-e", "."], check=True)
+            subprocess.run(["pip", "install", "-e", "."], check=True, cwd=vllm_dir)
         else:
             logger.error(f"Unsupported machine type: {machine}")
             exit(1)
 
         # Download the VLLM model from Hugging Face
-        dataset_url = "https://huggingface.co/datasets/anon8231489123/"
-        "ShareGPT_Vicuna_unfiltered/resolve/main/"
-        "ShareGPT_V3_unfiltered_cleaned_split.json"
+        base_url = "https://huggingface.co/datasets/anon8231489123"
+        base_url2 = "ShareGPT_Vicuna_unfiltered"
+        file_path = "resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json"
+        dataset_url = f"{base_url}/{base_url2}/{file_path}"
         dataset_path = os.path.join(
             dataset_dir, "ShareGPT_V3_unfiltered_cleaned_split.json"
         )
@@ -271,10 +324,8 @@ def install(config: str):
         # Clone the repository directly into a folder named "llama.cpp"
         repo_url = "https://github.com/ggerganov/llama.cpp"
         project_dir = os.path.join(os.getcwd(), "benchmark", "llm_bench", "llama.cpp")
-        if not os.path.exists(project_dir):
-            subprocess.run(["git", "clone", repo_url, project_dir], check=True)
-        else:
-            logger.info(f"{project_dir} already exists. Skipping clone.")
+
+        clone_repo(repo_url, project_dir)
 
         # Define a directory to store downloaded models inside the llama.cpp folder
         project_dir = os.path.join(os.getcwd(), "benchmark/llm_bench/llama.cpp")
