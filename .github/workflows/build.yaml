@@ -24,6 +24,8 @@ jobs:
 
       - name: "[Poetry] Build basic performance bandwidth tests"
         run: poetry run heimdall bench build basic bw
+      - name: "[Poetry] Build lockfree data structures benchmark tests"
+        run: poetry run heimdall bench build lockfree
 
 
   build-standalone:
