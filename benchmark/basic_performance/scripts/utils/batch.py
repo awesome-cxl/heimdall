@@ -212,9 +212,9 @@ def run_all(
 def get_thread_num_array(thread_num_type: int, config: dict, machine_type: str):
     if thread_num_type == 0 : # user defined
         return config["thread_num_array"]
-    elif thread_num_type == 1: # all threads
+    elif thread_num_type: # Automatic thread detection with custom step size
         total_thread = get_cpu_number(machine_type) * get_thread_per_core(machine_type)
-        return [i for i in range(1, total_thread - 1)]
+        return [i for i in range(1, total_thread, thread_num_type)]
     
 
 

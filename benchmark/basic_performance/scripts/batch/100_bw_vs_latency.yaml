@@ -1,9 +1,25 @@
+# TODO(smahar): Add description
 job_id: 100 # enum class JobId : uint32_t  @ src/core/system_define.h
-thread_num_type: 1 # 0: user defined, 1: auto, sweep the all the thread number, this case, thread_num_array is ignored
+
+# 0: use thread_num_array for BW threads
+# 1 or larger: Automatically sweep through the available cores (HT-cores are considered distinct cores) with step size of thread_num_type
+#              E.g., thread_num_type value of 1 would sweep 0, 1, 2, 3... cores
+#                    thread_num_type value of 2 would sweep 0, 2, 4, .... cores
+thread_num_type: 1
+
+# TODO(smahar): Add description
 thread_num_array: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+
+# TODO(smahar): Add description
 pattern_iteration_array: [2]
+
+# TODO(smahar): Add description
 thread_buffer_size array_megabyte: [512] #MiB unit
+
+# NUMA IDs for threads that generate BW and latency load
 core_socket_array: [0, 1]
+
+# NUMA IDs for to target for BW and latency measurements
 numa_node_array: [0, 1]
 delay_array:
   - 0
