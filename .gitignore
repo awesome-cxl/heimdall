@@ -256,3 +256,6 @@ self.env
 
 # temp files
 temp.yaml
+
+# vscode config files
+.vscode
