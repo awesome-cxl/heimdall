@@ -108,6 +108,17 @@ def install_deps():
                 "./build/fbcode_builder/getdeps.py install-system-deps --recursive",
                 True,
             )
+
+            # PYTHON_CPLUS_INCLUDE_PATHs =
+            # h_utils_cmd.run("python3-config --includes").stdout.strip()
+            # PYTHON_CPLUS_INCLUDE_PATHs = PYTHON_CPLUS_INCLUDE_PATHs.split()
+            # CPLUS_INCLUDE_PATH =
+            # h_utils_cmd.run("echo $CPLUS_INCLUDE_PATH").stdout.strip()
+            # for PYTHON_CPLUS_INCLUDE_PATH in PYTHON_CPLUS_INCLUDE_PATHs:
+            #     CPLUS_INCLUDE_PATH = CPLUS_INCLUDE_PATH + ':' +
+            #                           PYTHON_CPLUS_INCLUDE_PATH[2:]
+            # logger.info(f"CPLUS_INCLUDE_PATH: {CPLUS_INCLUDE_PATH}")
+
             h_utils_cmd.run(
                 "./build/fbcode_builder/getdeps.py "
                 "--num-jobs=$(nproc) "
@@ -280,7 +291,7 @@ def run(machine: str, timestamp: str, results: map):
                                     if second_try_times > max_second_try_times:
                                         logger.info(
                                             f"Max retry times reached: "
-                                            f"{max_second_try_times}"
+                                            f"{max_second_try_times} "
                                             f"Results got: {time_val_get}"
                                         )
                                         f.write(
@@ -294,7 +305,7 @@ def run(machine: str, timestamp: str, results: map):
                                     else:
                                         logger.info(
                                             f"Retry command, retry times: "
-                                            f"{second_try_times}"
+                                            f"{second_try_times} "
                                             f"Results got: {time_val_get}"
                                         )
                                         f.write(
