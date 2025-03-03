@@ -5,32 +5,32 @@
 Install tools:
 
 ```shell
-$ pip3 install poetry pre-commit
+pip3 install poetry pre-commit
 ```
 
 Activate the poetry python environement and execute the heimdall command line.
 
 ```shel
-$ poetry install
+poetry install
 
-$ poetry run heimdall --help
+poetry run heimdall --help
 ```
 
 When developing code, use pre-commit to format commits:
 
 ```shell
-$ pre-commit install
+pre-commit install
 ```
 
 **If you need a portable standalone executable of heimdall** (in case your experiment machine does not have internet or cannot install python packages), then:
 
 ```shell
-$ make standalone
+make standalone
 # It builds the executable 'heimdall' under 'dist' dir
 
-$ cd ..
-$ tar -zcvf heimdall.tar.gz heimdall/
-$ scp heimdall.tar.gz <remote-machine>
+cd ..
+tar -zcvf heimdall.tar.gz heimdall/
+scp heimdall.tar.gz <remote-machine>
 ```
 
 And then ssh to your machine:
@@ -51,14 +51,14 @@ And then ssh to your machine:
 ### 1. Clone the code
 
 ```shell
-$ git clone --recurse-submodules git@github.com:awesome-cxl/heimdall.git
+git clone --recurse-submodules git@github.com:awesome-cxl/heimdall.git
 ```
 
 ### 2. Install dependencies
 
 ```shell
-$ cd heimdall
-$ poetry install
+cd heimdall
+poetry install
 ```
 
 ### 3. Make Environment files
@@ -68,33 +68,33 @@ Make the user's env file
 ***`USER_PASSWORD` field is mandatory***
 
 ```shell
-$ cd benchmark/basic_performance/env_files
-$ nano self_template.env
-$ mv self_template.env self.env
+cd benchmark/basic_performance/env_files
+nano self_template.env
+mv self_template.env self.env
 ```
 Make the machine's env file
 
 ***ALL fields are required***
 
 ```shell
-$ cd benchmark/basic_performance/env_files
-$ nano machine_template.env
-$ mv machine_template.env {hostname}.env
+cd benchmark/basic_performance/env_files
+nano machine_template.env
+mv machine_template.env {hostname}.env
 ```
 
 if you don't know the hostname, you can use the following command to get it:
 
 
 ```shell
-$ hostname
+hostname
 ```
 ### 4. [Recommended] Modify/make the test sciript
 
 For bandwidth vs latency test
 
  ```bash
- $ cd benchmark/basic_performance/scripts/batch
- $ nano 100_{your test script}.yaml or reuse previous one 100_bw_vs_latency.yaml, etc..
+ cd benchmark/basic_performance/scripts/batch
+ nano 100_{your test script}.yaml or reuse previous one 100_bw_vs_latency.yaml, etc..
  ```
  1. Thread number & Thread number type configuration:
     - 'thread_num_type':
@@ -122,8 +122,8 @@ For bandwidth vs latency test
 For cache analysis test
 
 ```bash
- $ cd benchmark/basic_performance/scripts/batch
- $ nano 200_{your test script}.yaml or reuse previous one 200_cache_heatmap.yaml
+ cd benchmark/basic_performance/scripts/batch
+ nano 200_{your test script}.yaml or reuse previous one 200_cache_heatmap.yaml
 ```
 
 ### 5. Start the test
@@ -131,17 +131,17 @@ For cache analysis test
 For bandwidth vs latency test
 
 ```bash
-$ cd {top directory}
-$ poetry run heimdall bench build basic bw
-$ poetry run heimdall bench run basic bw
+cd {top directory}
+poetry run heimdall bench build basic bw
+poetry run heimdall bench run basic bw
 ```
 
 For cache analysis test
 
 ```bash
-$ cd {top directory}
-$ poetry run heimdall bench build basic cache
-$ poetry run heimdall bench run basic cache
+cd {top directory}
+poetry run heimdall bench build basic cache
+poetry run heimdall bench run basic cache
 ```
 
 ### 6. Check the result
@@ -149,11 +149,11 @@ $ poetry run heimdall bench run basic cache
 For bandwidth vs latency test
 
 ```bash
-$ cd {top directory}/results/basic_performance/100
+cd {top directory}/results/basic_performance/100
 ```
 
 For cache analysis test
 
 ```bash
-$ cd {top directory}/results/basic_performance/200
+cd {top directory}/results/basic_performance/200
 ```
