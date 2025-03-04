@@ -125,7 +125,7 @@ def install_deps():
             h_utils_cmd.run(
                 f"CPLUS_INCLUDE_PATH={CPLUS_INCLUDE_PATH} "
                 "./build/fbcode_builder/getdeps.py "
-                # "--num-jobs=$(nproc) "
+                "--num-jobs=$(nproc) "
                 "--install-prefix=$(realpath ../../libs/folly) "
                 "build"
             )
