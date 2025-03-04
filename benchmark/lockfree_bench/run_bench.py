@@ -89,7 +89,7 @@ def install_deps():
 
         # install boost using apt
         # install libcds using apt
-        h_utils_cmd.run("apt install -y libboost-all-dev libcds-dev", True)
+        # h_utils_cmd.run("apt install -y libboost-all-dev libcds-dev", True)
 
         # install cxxopt from github
         h_utils_cmd.run(

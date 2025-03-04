@@ -16,6 +16,7 @@ dependencies = [
   "seaborn (>=0.13.2,<0.14.0)",
   "rich (>=13.9.4,<14.0.0)",
   "huggingface_hub>=0.28.0",
+  "numpy (>=1.26,<2.0.0)",          # LockFree benchmark 'folly' requires numpy < 2.0
 ]
 description = "Heterogeneous Memory Benchmark Suite"
 license = { text = "MIT" }
@@ -24,7 +25,6 @@ readme = "README.md"
 # 3.10 seems LTS-enough, but any 3.6+ should work other than the pyinstaller need 3.8+
 requires-python = ">=3.10,<3.14"
 version         = "1.0.0"
-
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
@@ -35,5 +35,6 @@ profile = "black"
 
 [tool.poetry.scripts]
 heimdall = "heimdall.heimdall:app"
+
 [tool.poetry.group.dev.dependencies]
 pyinstaller = "^6.12.0"
