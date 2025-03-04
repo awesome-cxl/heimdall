@@ -109,19 +109,23 @@ def install_deps():
                 True,
             )
 
-            # PYTHON_CPLUS_INCLUDE_PATHs =
-            # h_utils_cmd.run("python3-config --includes").stdout.strip()
-            # PYTHON_CPLUS_INCLUDE_PATHs = PYTHON_CPLUS_INCLUDE_PATHs.split()
-            # CPLUS_INCLUDE_PATH =
-            # h_utils_cmd.run("echo $CPLUS_INCLUDE_PATH").stdout.strip()
-            # for PYTHON_CPLUS_INCLUDE_PATH in PYTHON_CPLUS_INCLUDE_PATHs:
-            #     CPLUS_INCLUDE_PATH = CPLUS_INCLUDE_PATH + ':' +
-            #                           PYTHON_CPLUS_INCLUDE_PATH[2:]
-            # logger.info(f"CPLUS_INCLUDE_PATH: {CPLUS_INCLUDE_PATH}")
+            PYTHON_CPLUS_INCLUDE_PATHs = h_utils_cmd.run(
+                "python3-config --includes"
+            ).stdout.strip()
+            PYTHON_CPLUS_INCLUDE_PATHs = PYTHON_CPLUS_INCLUDE_PATHs.split()
+            CPLUS_INCLUDE_PATH = h_utils_cmd.run(
+                "echo $CPLUS_INCLUDE_PATH"
+            ).stdout.strip()
+            for PYTHON_CPLUS_INCLUDE_PATH in PYTHON_CPLUS_INCLUDE_PATHs:
+                CPLUS_INCLUDE_PATH = (
+                    CPLUS_INCLUDE_PATH + ":" + PYTHON_CPLUS_INCLUDE_PATH[2:]
+                )
+            logger.info(f"CPLUS_INCLUDE_PATH: {CPLUS_INCLUDE_PATH}")
 
             h_utils_cmd.run(
+                f"CPLUS_INCLUDE_PATH={CPLUS_INCLUDE_PATH} "
                 "./build/fbcode_builder/getdeps.py "
-                "--num-jobs=$(nproc) "
+                # "--num-jobs=$(nproc) "
                 "--install-prefix=$(realpath ../../libs/folly) "
                 "build"
             )
