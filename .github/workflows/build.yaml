@@ -24,9 +24,12 @@ jobs:
 
       - name: "[Poetry] Build basic performance bandwidth tests"
         run: poetry run heimdall bench build basic bw
+      - name: "[Poetry] Install deps of lockfree data structures benchmark"
+        run: poetry run heimdall bench install lockfree all
       - name: "[Poetry] Build lockfree data structures benchmark tests"
-        run: poetry run heimdall bench build lockfree
-
+        run: poetry run heimdall bench build lockfree all
+      - name: "[Poetry] Run lockfree data structures benchmark basic tests"
+        run: poetry run heimdall bench run lockfree basic
 
   build-standalone:
     strategy:
