@@ -8,9 +8,10 @@
 # if you are using GPU, you can set VLLM_GPU_KVCACHE_SPACE instead
 export VLLM_CPU_KVCACHE_SPACE=30
 export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4:$LD_PRELOAD
+export HUGGING_FACE_HUB_TOKEN=$(cat ~/.cache/huggingface/token)
 
 # Set the Hugging Face cache directory
-export HF_HOME="../cache/huggingface"
+export HF_HOME="benchmark/llm_bench/cache/huggingface"
 
 NUMA_CONFIGS=(
 	"--membind=0"
@@ -22,7 +23,7 @@ NUMA_CONFIGS=(
 )
 
 VLLM_PATH="benchmark/llm_bench/vllm"
-MODEL="benchmark/llm_bench/cache/huggingface/Meta-Llama-3-8B-Instruct"
+MODEL="meta-llama/Meta-Llama-3-8B"
 DATASET="benchmark/llm_bench/datasets/ShareGPT_V3_unfiltered_cleaned_split.json"
 
 # Define the vllm function

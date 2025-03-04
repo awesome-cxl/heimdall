@@ -10,6 +10,11 @@ import benchmark.basic_performance.scripts.utils.utils as utils
 
 app = typer.Typer()
 
+def clone_repo(repo_url, clone_dir):
+    if not os.path.exists(clone_dir):
+        subprocess.run(["git", "clone", repo_url, clone_dir], check=True)
+    else:
+        logger.info(f"{clone_dir} already exists. Skipping clone.")
 
 def check_huggingface_login():
     """Check if the user is logged into Hugging Face"""
@@ -24,6 +29,58 @@ def check_huggingface_login():
         print("    huggingface-cli login\n")
         exit(1)
 
+def download_dataset(dataset_dir):
+    """Remove the existing dataset directory and clone the dataset repo."""
+    target_dir = dataset_dir
+    repo_url = "https://github.com/awesome-cxl/heimdall.git"
+        
+    if os.path.exists(target_dir):
+        print(f"{target_dir} already exists. Removing it.")
+        shutil.rmtree(target_dir)
+    
+    # 
+    clone_cmd = [
+        "git",
+        "clone",
+        "--filter=blob:none",
+        "--sparse",
+        repo_url,
+        target_dir
+    ]
+    print("Cloning repository with sparse option...")
+    subprocess.run(clone_cmd, check=True)
+    
+    # 
+    sparse_cmd = ["git", "sparse-checkout", "set", "datasets"]
+    print("Setting sparse-checkout for 'datasets' folder...")
+    subprocess.run(sparse_cmd, cwd=target_dir, check=True)
+
+    nested_dir = os.path.join(target_dir, "benchmark", "llm_bench", "datasets")
+    if os.path.exists(nested_dir) and os.path.isdir(nested_dir):
+        print(f"Found nested directory: {nested_dir}")
+        for item in os.listdir(nested_dir):
+            src_path = os.path.join(nested_dir, item)
+            dst_path = os.path.join(target_dir, item)
+            print(f"Moving {src_path} to {dst_path}")
+            shutil.move(src_path, dst_path)
+        
+        nested_parent = os.path.join(target_dir, "benchmark")
+        if os.path.exists(nested_parent):
+            shutil.rmtree(nested_parent)
+        print("Flattened repository structure to target directory.")
+    
+    print("Sparse checkout completed successfully.")
+
+def ensure_git_lfs_installed(dataset_dir):
+    """Check if git-lfs is installed. If not, install it."""
+    if not shutil.which("git-lfs"):
+        logger.info("git-lfs not found. Installing git-lfs...")
+        subprocess.run(["sudo", "apt-get", "update"], check=True)
+        subprocess.run(["sudo", "apt-get", "install", "-y", "git-lfs"], check=True)
+        subprocess.run(["git", "lfs", "install"], check=True)
+        download_dataset(dataset_dir)
+    else:
+        logger.info("git-lfs is already installed.")
 
 def ensure_package_installed(package):
     if not shutil.which(package):
@@ -32,11 +89,6 @@ def ensure_package_installed(package):
         subprocess.run(["sudo", "apt-get", "install", "-y", package], check=True)
 
 
-def clone_repo(repo_url, clone_dir):
-    if not os.path.exists(clone_dir):
-        subprocess.run(["git", "clone", repo_url, clone_dir], check=True)
-    else:
-        logger.info(f"{clone_dir} already exists. Skipping clone.")
 
 
 @app.command()
@@ -52,6 +104,7 @@ def install(config: str):
     base_dir = os.getcwd()
     model_dir = os.path.join(base_dir, "benchmark/llm_bench/models")
     dataset_dir = os.path.join(base_dir, "benchmark/llm_bench/datasets")
+    ensure_git_lfs_installed(dataset_dir)
 
     if config in ["pytorch"]:
         model_version = "llama3-8B"
@@ -170,6 +223,7 @@ def install(config: str):
         vllm_url = "https://github.com/vllm-project/vllm.git"
         if not os.path.exists(vllm_dir):
             clone_repo(vllm_url, vllm_dir)
+            subprocess.run(["git", "checkout", "v0.7.3"], cwd=vllm_dir, check=True)
         else:
             logger.info(f"{vllm_dir} already exists. Skipping clone.")
         machine = utils.get_architecture()

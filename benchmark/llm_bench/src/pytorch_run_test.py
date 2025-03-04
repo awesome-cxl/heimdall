@@ -1,12 +1,21 @@
 import argparse
+import csv
 import time
 
 import torch
 from llama import Llama
 
+def parse_optional_int(value):
+    if value == "":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid integer value: {value}")
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--cpu_bind", type=int, default=None)
-parser.add_argument("--mem_bind", type=int, default=None)
+parser.add_argument("--cpu_bind", type=parse_optional_int, default=None)
+parser.add_argument("--mem_bind", type=parse_optional_int, default=None)
 parser.add_argument("--description", type=str, default="")
 args = parser.parse_args()
 
@@ -56,14 +65,14 @@ average_latency = sum(latencies) / len(latencies)
 
 if record_latency:
     average_latency = sum(latencies) / len(latencies)
-    output_file = "latency_results.txt"
-    with open(output_file, "a") as f:
-        f.write(
-            f"Configuration: CPU bind={args.cpu_bind}, "
-            f"Memory bind={args.mem_bind}, "
-            f"Description={args.description}\n"
-        )
-        for i, latency in enumerate(latencies):
-            f.write(f"Token {i} Latency: {latency:.2f} ms\n")
-        f.write(f"Average Latency per Chunk: {average_latency:.2f} ms\n")
+    output_file = "latency_results.csv"
+
+    with open(output_file, "a", newline='') as csvfile:
+        csvwriter = csv.writer(csvfile, delimiter='|')
+        csvwriter.writerow(["cpu", "mem", "average_latency"])
+        csvwriter.writerow([
+            args.cpu_bind if args.cpu_bind is not None else "nocpubind",
+            args.mem_bind,
+            f"{average_latency:.2f}"
+        ])
     print(f"Results written to {output_file}")
