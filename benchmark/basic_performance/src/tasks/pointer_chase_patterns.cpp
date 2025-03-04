@@ -156,13 +156,16 @@ void PointerChasePatternsAbstract::prepare_pointer_chaser(uint64_t *base_addr,
                                                           uint64_t csize) {
   uint64_t curr_pos = 0;
   uint64_t next_pos = 0;
+  const auto start_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::system_clock::now().time_since_epoch())
+                            .count();
   for (auto i = 0; i < csize - 1; i++) {
-    if (curr_pos >= csize) {
+    if (curr_pos >= csize) [[unlikely]] {
       std::cerr << "Error: curr_pos >= csize" << std::endl;
       return;
     }
     uint64_t *curr_addr = base_addr + curr_pos * stride_size / sizeof(uint64_t);
-    if (curr_addr >= end_add) {
+    if (curr_addr >= end_add) [[unlikely]] {
       std::cout << "curr_pos: " << curr_pos << std::endl;
       std::cout << "stride size: " << stride_size << std::endl;
       std::cout << "curr_addr: " << curr_addr << std::endl;
@@ -173,6 +176,17 @@ void PointerChasePatternsAbstract::prepare_pointer_chaser(uint64_t *base_addr,
     next_pos = cindex[curr_pos];
     *curr_addr = next_pos;
     curr_pos = next_pos;
+
+    // Check for timeout
+    if (rand() % 10000 == 0) [[unlikely]] {
+      const auto curr_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                               std::chrono::system_clock::now().time_since_epoch())
+                               .count();
+      if (curr_ms - start_ms > 2 * 60 * 1000) { // 2 minutes
+        std::cerr << "Pointer chasing timed out" << std::endl;
+        return;
+      }
+    }
   }
 }
 
