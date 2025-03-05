@@ -88,7 +88,75 @@ def ensure_package_installed(package):
         subprocess.run(["sudo", "apt-get", "update"], check=True)
         subprocess.run(["sudo", "apt-get", "install", "-y", package], check=True)
 
+def setup_vllm_environment(vllm_dir):
+    import re
 
+    setup_envs_file = os.path.join(vllm_dir, "vllm/envs.py")
+    with open(setup_envs_file, "r") as f:
+        content = f.read()
+
+    # Replace VLLM_TARGET_DEVICE assignment to use "cpu"
+    content = re.sub(
+        r'VLLM_TARGET_DEVICE: str = "cuda"',
+        'VLLM_TARGET_DEVICE: str = "cpu"',
+        content,
+    )
+
+    with open(setup_envs_file, "w") as f:
+        f.write(content)
+
+    setup_py_file = os.path.join(vllm_dir, "setup.py")
+    with open(setup_py_file, "r") as file:
+        lines = file.readlines()
+
+    removed_line = lines.pop(539)
+
+    if len(lines) > 539:
+        lines[539] = lines[539].replace("    ", "", 1)
+
+    with open(setup_py_file, "w") as file:
+        file.writelines(lines)
+
+
+def vllm_install_dependencies(machine, vllm_dir):
+    if machine in ["x86", "arm"]:
+        subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
+        subprocess.run(["sudo", "apt-get", "install", "-y", "gcc-12", "g++-12", "libnuma-dev"], check=True)
+        subprocess.run(
+            [
+                "sudo", "update-alternatives", "--install", "/usr/bin/gcc", "gcc", "/usr/bin/gcc-12", "10",
+                "--slave", "/usr/bin/g++", "g++", "/usr/bin/g++-12"
+            ],
+            check=True,
+        )
+
+        if machine == "x86":
+            subprocess.run(["pip", "install", "--upgrade", "pip"], check=True)
+            subprocess.run(
+                ["pip", "install", "cmake>=3.26", "wheel", "packaging", "ninja", "setuptools-scm>=8", "numpy"],
+                check=True,
+            )
+            subprocess.run(
+                ["pip", "install", "-r", os.path.join(vllm_dir, "requirements-cpu.txt"),
+                 "--extra-index-url", "https://download.pytorch.org/whl/cpu"],
+                check=True,
+            )
+    elif machine == "apple":
+        subprocess.run(
+            ["pip", "install", "-r", os.path.join(vllm_dir, "requirements-cpu.txt")],
+            check=True,
+        )
+    else:
+        logger.error(f"Unsupported machine type: {machine}")
+        exit(1)
+
+
+def vllm_download_dataset(dataset_dir):
+    base_url = "https://huggingface.co/datasets/anon8231489123"
+    dataset_url = f"{base_url}/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json"
+    dataset_path = os.path.join(dataset_dir, "ShareGPT_V3_unfiltered_cleaned_split.json")
+    os.makedirs(os.path.dirname(dataset_path), exist_ok=True)
+    subprocess.run(["wget", dataset_url, "-O", dataset_path], check=True)
 
 
 @app.command()
@@ -215,163 +283,32 @@ def install(config: str):
                 shutil.move(os.path.join(original_dir, item), custom_model_dir)
             shutil.rmtree(original_dir)
             logger.info(f"Moved contents of 'original/' to {custom_model_dir}")
-
-    elif config in ["vllm"]:
+    elif config == "vllm":
         current_dir = os.getcwd()
         llm_bench_dir = os.path.join(current_dir, "benchmark/llm_bench")
         vllm_dir = os.path.join(llm_bench_dir, "vllm")
         vllm_url = "https://github.com/vllm-project/vllm.git"
+
         if not os.path.exists(vllm_dir):
             clone_repo(vllm_url, vllm_dir)
             subprocess.run(["git", "checkout", "v0.7.3"], cwd=vllm_dir, check=True)
         else:
             logger.info(f"{vllm_dir} already exists. Skipping clone.")
+
         machine = utils.get_architecture()
-        if machine == "x86":
-            subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
-            subprocess.run(["sudo", "apt-get", "install", "-y", "gcc-12"], check=True)
-            subprocess.run(["sudo", "apt-get", "install", "-y", "g++-12"], check=True)
-            subprocess.run(
-                ["sudo", "apt-get", "install", "-y", "libnuma-dev"], check=True
-            )
-            subprocess.run(
-                [
-                    "sudo",
-                    "update-alternatives",
-                    "--install",
-                    "/usr/bin/gcc",
-                    "gcc",
-                    "/usr/bin/gcc-12",
-                    "10",
-                    "--slave",
-                    "/usr/bin/g++",
-                    "g++",
-                    "/usr/bin/g++-12",
-                ],
-                check=True,
-            )
+        vllm_install_dependencies(machine, vllm_dir)
 
-            # Install the required packages for VLLM
-            subprocess.run(["pip", "install", "--upgrade", "pip"], check=True)
-            subprocess.run(
-                [
-                    "pip",
-                    "install",
-                    "cmake>=3.26",
-                    "wheel",
-                    "packaging",
-                    "ninja",
-                    "setuptools-scm>=8",
-                    "numpy",
-                ],
-                check=True,
-            )
-            subprocess.run(
-                [
-                    "pip",
-                    "install",
-                    "-r",
-                    os.path.join(vllm_dir, "requirements-cpu.txt"),
-                    "--extra-index-url",
-                    "https://download.pytorch.org/whl/cpu",
-                ],
-                check=True,
-            )
-
-            # python setup.py install
-            import re
-
-            setup_file = os.path.join(vllm_dir, "vllm/envs.py")
-            with open(setup_file, "r") as f:
-                content = f.read()
-
-            # Replace VLLM_TARGET_DEVICE assignment to use "cpu"
-            content = re.sub(
-                r'VLLM_TARGET_DEVICE: str = "cuda"',
-                'VLLM_TARGET_DEVICE: str = "cpu"',
-                content,
-            )
-
-            with open(setup_file, "w") as f:
-                f.write(content)
-
-            subprocess.run(
-                ["python", os.path.join(vllm_dir, "setup.py"), "install"],
-                check=True,
-                cwd=vllm_dir,
-            )
-        elif machine == "arm":
-            subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
-            subprocess.run(["sudo", "apt-get", "install", "-y", "gcc-12"], check=True)
-            subprocess.run(["sudo", "apt-get", "install", "-y", "g++-12"], check=True)
-            subprocess.run(
-                ["sudo", "apt-get", "install", "-y", "libnuma-dev"], check=True
-            )
-            subprocess.run(
-                [
-                    "sudo",
-                    "update-alternatives",
-                    "--install",
-                    "/usr/bin/gcc",
-                    "gcc",
-                    "/usr/bin/gcc-12",
-                    "10",
-                    "--slave",
-                    "/usr/bin/g++",
-                    "g++",
-                    "/usr/bin/g++-12",
-                ],
-                check=True,
-            )
-            # python setup.py install
-            import re
-
-            setup_file = os.path.join(vllm_dir, "vllm/envs.py")
-            with open(setup_file, "r") as f:
-                content = f.read()
-
-            # Replace VLLM_TARGET_DEVICE assignment to use "cpu"
-            content = re.sub(
-                r'VLLM_TARGET_DEVICE: str = "cuda"',
-                'VLLM_TARGET_DEVICE: str = "cpu"',
-                content,
-            )
-
-            with open(setup_file, "w") as f:
-                f.write(content)
-
+        if machine in ["x86", "arm"]:
+            setup_vllm_environment(vllm_dir)
             subprocess.run(
                 ["python", os.path.join(vllm_dir, "setup.py"), "install"],
                 check=True,
                 cwd=vllm_dir,
             )
         elif machine == "apple":
-            subprocess.run(
-                [
-                    "pip",
-                    "install",
-                    "-r",
-                    os.path.join(vllm_dir, "requirements-cpu.txt"),
-                ],
-                check=True,
-            )
             subprocess.run(["pip", "install", "-e", "."], check=True, cwd=vllm_dir)
-        else:
-            logger.error(f"Unsupported machine type: {machine}")
-            exit(1)
 
-        # Download the VLLM model from Hugging Face
-        base_url = "https://huggingface.co/datasets/anon8231489123"
-        base_url2 = "ShareGPT_Vicuna_unfiltered"
-        file_path = "resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json"
-        dataset_url = f"{base_url}/{base_url2}/{file_path}"
-        dataset_path = os.path.join(
-            dataset_dir, "ShareGPT_V3_unfiltered_cleaned_split.json"
-        )
-        os.makedirs(
-            os.path.dirname(dataset_path), exist_ok=True
-        )  # Create the directory if it doesn't exist
-        subprocess.run(["wget", dataset_url, "-O", dataset_path], check=True)
+        vllm_download_dataset(dataset_dir)
 
     elif config in ["llamacpp"]:
         model_version = "llama3-8B"
