@@ -1,6 +1,7 @@
 import argparse
 import csv
 import time
+import os
 
 import torch
 from llama import Llama
@@ -42,8 +43,8 @@ tokens = tokenizer.encode(test_data, bos=True, eos=True)
 chunks = [tokens[i : i + max_seq_len] for i in range(0, len(tokens), max_seq_len)]
 
 record_latency = True
-latencies = []
 tokens_per_second = []
+latency_per_token = []
 index = 0
 for chunk in chunks:
     input_ids = torch.tensor(chunk).unsqueeze(0).to(device)
@@ -52,27 +53,33 @@ for chunk in chunks:
         outputs = generator.model(input_ids, start_pos=0)
     end_time = time.time()
     latency = (end_time - start_time) * 1000
-    latencies.append(latency)
     generated_tokens = outputs.shape[1]
-    tokens_per_second.append(generated_tokens / (latency / 1000))
-    average_tokens_per_second = sum(tokens_per_second) / len(tokens_per_second)
-#    print(f"Average tokens per second: {average_tokens_per_second}")
-#    index += 1
-#    if index > 50:
-#        break
+    tps = generated_tokens / (latency / 1000)  # tokens per second
+    tokens_per_second.append(tps)
+    latency_per_token.append(latency / generated_tokens)
+    #print(f"Average tokens per second: {tps.2f}")
+    #index += 1
+    #if index > 2:
+    #    break
 
-average_latency = sum(latencies) / len(latencies)
+average_tokens_per_second = sum(tokens_per_second) / len(tokens_per_second)
+average_latency_per_token = sum(latency_per_token) / len(latency_per_token)
 
 if record_latency:
-    average_latency = sum(latencies) / len(latencies)
-    output_file = "latency_results.csv"
+    output_dir = "benchmark/llm_bench/logs/pytorch"
+    os.makedirs(output_dir, exist_ok=True)  # Create directory if it doesn't exist
+
+    # Set output file path within output_dir
+    output_file = os.path.join(output_dir, "latency_results.csv")
 
     with open(output_file, "a", newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter='|')
-        csvwriter.writerow(["cpu", "mem", "average_latency"])
+        if os.stat(output_file).st_size == 0:
+            csvwriter.writerow(["cpu", "mem", "tokens_per_second", "latency_per_token"])
         csvwriter.writerow([
             args.cpu_bind if args.cpu_bind is not None else "nocpubind",
             args.mem_bind,
-            f"{average_latency:.2f}"
+            f"{average_tokens_per_second:.2f}",
+            f"{average_latency_per_token:.2f}"
         ])
     print(f"Results written to {output_file}")
