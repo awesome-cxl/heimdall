@@ -148,3 +148,17 @@ def get_thread_per_core(machine_type) :
     else:
         logger.error(f"Failed to get Thread per core: {result.stderr}")
         exit(1)
+
+def get_free_memsize(numa_node):
+    result = run("numactl --hardware", hide=True, warn=True)
+
+    if result.ok:
+        output = result.stdout
+        match = re.search(rf'node {numa_node} free:\s+(\d+) MB', output)
+        if match:
+            free_size_mb = int(match.group(1))
+            logger.info(f"Free memory size: {free_size_mb}MB")
+            return free_size_mb
+
+    logger.error(f"Failed to get free memory size for NUMA node {numa_node}")
+    exit(1)
