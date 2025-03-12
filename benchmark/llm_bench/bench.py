@@ -363,20 +363,19 @@ def build(config: str):
 @app.command()
 def run(config: str):
     logger.info("Running")
-    if config in ["pytorch"]:
-        script_path = os.path.join(
-            os.path.dirname(__file__), "scripts", "pytorch_run_test.sh"
-        )
-        subprocess.run(["bash", script_path], check=True)
-    elif config in ["vllm"]:
-        script_path = os.path.join(
-            os.path.dirname(__file__), "scripts", "vllm_run_test.sh"
-        )
-        subprocess.run(["bash", script_path], check=True)
-    elif config in ["llamacpp"]:
-        script_path = os.path.join(
-            os.path.dirname(__file__), "scripts", "llamacpp_run_test.sh"
-        )
+    script_map = {
+        "pytorch": "pytorch_run_test.sh",
+        "vllm": "vllm_run_test.sh",
+        "llamacpp": "llamacpp_run_test.sh"
+    }
+    base_dir = os.path.join(os.path.dirname(__file__), "scripts")
+
+    if config == "all":
+        for script in script_map.values():
+            script_path = os.path.join(base_dir, script)
+            subprocess.run(["bash", script_path], check=True)
+    elif config in script_map:
+        script_path = os.path.join(base_dir, script_map[config])
         subprocess.run(["bash", script_path], check=True)
     else:
         logger.error(f"this is the unknown task: {config}")

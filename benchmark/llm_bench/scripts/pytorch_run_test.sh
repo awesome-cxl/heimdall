@@ -20,7 +20,6 @@ for i in "${!mem_binds[@]}"; do
 	description=${descriptions[$i]}
 
 	cpu_label=${cpu_bind:-nocpubind}
-	output_file="${output_dir}/pytorch_numa_node_${mem_bind}_cpubind_${cpu_label}.csv"
 
 	echo "cpu_bind,mem_bind,description,latency"
 	echo "Running with CPU binding: ${cpu_bind:-None}, Memory binding: ${mem_bind} (${description})"
