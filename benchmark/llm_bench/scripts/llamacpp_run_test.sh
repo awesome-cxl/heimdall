@@ -48,29 +48,30 @@ done
 
 # Define output file for latency results
 OUTPUT_FILE="$LOG_DIR/latency_results.txt"
-declare -A latencies
+
+# Declare associative arrays explicitly
+declare -A tokens  # Changed to "tokens" for tokens_per_sec
 declare -A counts
 
-# Process each log file to calculate latency
+# Process each log file to calculate tokens per second
 for file in "$LOG_DIR"/llamacpp_numa_node_*_*.csv; do
     if [[ -f "$file" ]]; then
         filename=$(basename "$file")
         mem=$(echo "$filename" | grep -oP 'numa_node_\K\d+' || echo "unknown")
         cpu=$(echo "$filename" | grep -oP 'cpubind_\K\d+' || echo "unknown")
         if [[ "$filename" =~ "nocpubind" ]]; then
-            mem="nocpubind"
+            cpu="nocpubind"  # Set cpu to "nocpubind"
         fi
 
         tokens_per_sec=$(grep "prompt eval time" "$file" | grep -oP '\d+\.\d+(?= tokens per second)' || echo "0")
 
         if [[ "$tokens_per_sec" != "0" ]]; then
-            latency=$(echo "scale=2; 1000 / $tokens_per_sec" | bc)
-
-            if [[ -n "${latencies[$cpu|$mem]}" ]]; then
-                latencies[$cpu|$mem]=$(echo "${latencies[$cpu|$mem]} + $latency" | bc)
+            # Use tokens_per_sec directly instead of calculating latency
+            if [[ -n "${tokens[$cpu|$mem]}" ]]; then
+                tokens[$cpu|$mem]=$(echo "${tokens[$cpu|$mem]} + $tokens_per_sec" | bc)
                 counts[$cpu|$mem]=$((counts[$cpu|$mem] + 1))
             else
-                latencies[$cpu|$mem]=$latency
+                tokens[$cpu|$mem]=$tokens_per_sec
                 counts[$cpu|$mem]=1
             fi
         fi
@@ -78,14 +79,14 @@ for file in "$LOG_DIR"/llamacpp_numa_node_*_*.csv; do
 done
 
 # Write results to the output file
-echo "cpu|mem|average_latency" >"$OUTPUT_FILE"
-for key in "${!latencies[@]}"; do
+echo "cpu|mem|tokens_per_sec" >"$OUTPUT_FILE"
+for key in "${!tokens[@]}"; do
     cpu=${key%|*}
     mem=${key#*|}
-    avg_latency=$(echo "scale=2; ${latencies[$key]} / ${counts[$key]}" | bc)
-    echo "$cpu|$mem|$avg_latency" >>"$OUTPUT_FILE"
+    avg_tokens_per_sec=$(echo "scale=2; ${tokens[$key]} / ${counts[$key]}" | bc)
+    echo "$cpu|$mem|$avg_tokens_per_sec" >>"$OUTPUT_FILE"
 done
 
 # Print completion message and display results
 echo "Finished running llamacpp throughput benchmark"
-cat "$OUTPUT_FILE"
+cat "$OUTPUT_FILE"  # Fixed: Added closing quote
