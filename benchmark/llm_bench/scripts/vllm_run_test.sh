@@ -77,22 +77,25 @@ for i in "${!mem_binds[@]}"; do
 done
 
 # Create CSV file with pipe separator in the log directory
-output_csv="$LOG_DIR/benchmark_results.csv"
+output_csv="$LOG_DIR/test_results.csv"
 
 # Write CSV header with pipe separator
-echo "cpu|mem|tokens_per_second" > "$output_csv"
+echo "cpu|mem|tokens_per_sec" > "$output_csv"
 
 # Extract data from JSON files and convert to CSV
 for json_file in "$LOG_DIR"/KV30_result_*_mem*.json; do
     if [[ -f "$json_file" ]]; then
         # Extract cpu and mem from filename
-        cpu=$(echo "$json_file" | grep -oP "(?<=KV30_result_)[a-z0-9]+" | grep -oP "(nocpubind|cpu[0-1])")
+        cpu=$(echo "$json_file" | grep -oP "(?<=KV30_result_)[a-z0-9]+" | grep -oP "(?<=cpu)[0-1]|nocpubind")
         mem=$(echo "$json_file" | grep -oP "(?<=mem)[0-2]")
 
         # Extract tokens_per_second from JSON
         tokens_per_sec=$(grep "tokens_per_second" "$json_file" | awk -F: '{print $2}' | tr -d ' ,"')
         if [[ -z "$tokens_per_sec" ]]; then
             tokens_per_sec="N/A"
+        else
+            # Format the tokens_per_sec value to 2 decimal places if it's numeric
+            tokens_per_sec=$(printf "%.2f" "$tokens_per_sec")
         fi
 
         # Append line to CSV with pipe separator

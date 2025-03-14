@@ -57,7 +57,7 @@ for chunk in chunks:
     tps = generated_tokens / (latency / 1000)  # tokens per second
     tokens_per_second.append(tps)
     latency_per_token.append(latency / generated_tokens)
-    #print(f"Average tokens per second: {tps.2f}")
+    #print(f"Tokens per second for chunk {index}: {tps:.2f}")
     #index += 1
     #if index > 2:
     #    break
@@ -70,12 +70,12 @@ if record_latency:
     os.makedirs(output_dir, exist_ok=True)  # Create directory if it doesn't exist
 
     # Set output file path within output_dir
-    output_file = os.path.join(output_dir, "latency_results.csv")
+    output_file = os.path.join(output_dir, "test_results.csv")
 
     with open(output_file, "a", newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter='|')
         if os.stat(output_file).st_size == 0:
-            csvwriter.writerow(["cpu", "mem", "tokens_per_second", "latency_per_token"])
+            csvwriter.writerow(["cpu", "mem", "tokens_per_sec", "latency_per_token"])
         csvwriter.writerow([
             args.cpu_bind if args.cpu_bind is not None else "nocpubind",
             args.mem_bind,

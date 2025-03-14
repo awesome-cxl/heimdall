@@ -47,11 +47,10 @@ for i in "${!mem_binds[@]}"; do
 done
 
 # Define output file for latency results
-OUTPUT_FILE="$LOG_DIR/latency_results.txt"
+OUTPUT_FILE="$LOG_DIR/test_results.csv"
 
 # Declare associative arrays explicitly
-declare -A tokens  # Changed to "tokens" for tokens_per_sec
-declare -A counts
+declare -A tokens  # Changed to "tokens" for 
 
 # Process each log file to calculate tokens per second
 for file in "$LOG_DIR"/llamacpp_numa_node_*_*.csv; do
@@ -66,14 +65,8 @@ for file in "$LOG_DIR"/llamacpp_numa_node_*_*.csv; do
         tokens_per_sec=$(grep "prompt eval time" "$file" | grep -oP '\d+\.\d+(?= tokens per second)' || echo "0")
 
         if [[ "$tokens_per_sec" != "0" ]]; then
-            # Use tokens_per_sec directly instead of calculating latency
-            if [[ -n "${tokens[$cpu|$mem]}" ]]; then
-                tokens[$cpu|$mem]=$(echo "${tokens[$cpu|$mem]} + $tokens_per_sec" | bc)
-                counts[$cpu|$mem]=$((counts[$cpu|$mem] + 1))
-            else
-                tokens[$cpu|$mem]=$tokens_per_sec
-                counts[$cpu|$mem]=1
-            fi
+            # Overwrite: if a value exists for the same combination, overwrite it with the new tokens_per_sec value.
+            tokens[$cpu|$mem]=$tokens_per_sec
         fi
     fi
 done
@@ -83,8 +76,9 @@ echo "cpu|mem|tokens_per_sec" >"$OUTPUT_FILE"
 for key in "${!tokens[@]}"; do
     cpu=${key%|*}
     mem=${key#*|}
-    avg_tokens_per_sec=$(echo "scale=2; ${tokens[$key]} / ${counts[$key]}" | bc)
-    echo "$cpu|$mem|$avg_tokens_per_sec" >>"$OUTPUT_FILE"
+    # Format the tokens_per_sec value to 2 decimal places
+    formatted_value=$(printf "%.2f" "${tokens[$key]}")
+    echo "$cpu|$mem|$formatted_value" >>"$OUTPUT_FILE"
 done
 
 # Print completion message and display results
