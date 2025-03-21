@@ -238,7 +238,8 @@ def install(config: str):
 
             print("Updated model.py: Removed .cuda() calls for CPU inference.")
             subprocess.run(
-                ["pip", "install", "-r", os.path.join(pytorch_dir, "requirements.txt")],
+                ["pip", "install", "-r", os.path.join(pytorch_dir, "requirements.txt"),
+                 "--extra-index-url", "https://download.pytorch.org/whl/cpu"],
                 check=True,
             )
             subprocess.run(["pip", "install", "-e", "."], check=True)
