@@ -62,14 +62,26 @@ def set_prefetcher_intel(mode):
     else:
         logger.error(f"Invalid mode: {mode}")
 
+def extract_cpu_info():
+    cpu_family = None
+    cpu_model = None
+    with open("/proc/cpuinfo", "r") as cpuinfo:
+        for line in cpuinfo:
+            if line.startswith("cpu family"):
+                cpu_family = line.strip().split(":")[1].strip()
+            elif line.startswith("model") and not line.startswith("model name"):
+                cpu_model = line.strip().split(":")[1].strip()
+            if cpu_family and cpu_model:
+                break
+    return int(cpu_family), int(cpu_model)
 
 def set_prefetcher_amd(mode):
     try:
-        with open("/proc/cpuinfo", "r") as cpuinfo:
-            cpuinfo_data = cpuinfo.read()
-
-        if "cpu family" in cpuinfo_data and "25" in cpuinfo_data:
-            if "model" in cpuinfo_data and ("17" in cpuinfo_data or "144" in cpuinfo_data):
+        cpu_family, cpu_model = extract_cpu_info()
+        logger.info(f"cpu family: {cpu_family}")
+        logger.info(f"cpu model: {cpu_model}")
+        if cpu_family is 25:
+            if cpu_mode is 17 or cpu_mode is 144:
                 logger.info("Detected Zen4 CPU")
                 if mode == "off":
                     run_as_sudo("wrmsr -a 0xc0011020 0x4400000000000")
@@ -104,6 +116,30 @@ def set_prefetcher_amd(mode):
                     run_as_sudo("wrmsr -a 0xc0011022 0xc000000401500000")
                     run_as_sudo("wrmsr -a 0xc001102b 0x2000cc15")
                     logger.success("MSR register values for Zen3 applied: ON")
+                elif mode == "show":
+                    run_as_sudo("rdmsr -a 0xc0011020")
+                    run_as_sudo("rdmsr -a 0xc0011021")
+                    run_as_sudo("rdmsr -a 0xc0011022")
+                    run_as_sudo("rdmsr -a 0xc001102b")
+                else:
+                    logger.error(f"Invalid mode: {mode}")
+        elif cpu_family is 26:
+            if cpu_model is 2:
+                logger.info("Detected Zen5 CPU")
+                if mode == "off":
+                    run_as_sudo("wrmsr -a 0xc0011020 4004400000000000")
+                    # bit 5 off -> op prefetch off https://chipsandcheese.com/p/disabling-zen-5s-op-cache-and-exploring 
+                    run_as_sudo("wrmsr -a 0xc0011021 20000000000040") 
+                    run_as_sudo("wrmsr -a 0xc0011022 370000000000000")
+                    # opmode bit 0 off -> L1/L2 Prefetcher off, check the difference between BIOS setting on and off
+                    run_as_sudo("wrmsr -a 0xc001102b 50cc14")
+                    logger.success("MSR register values for Zen4 applied: OFF")
+                elif mode == "on":
+                    run_as_sudo("wrmsr -a 0xc0011020 4004400000000000")
+                    run_as_sudo("wrmsr -a 0xc0011021 20000000000040")
+                    run_as_sudo("wrmsr -a 0xc0011022 0x370000000000000")
+                    run_as_sudo("wrmsr -a 0xc001102b 0x50cc15")
+                    logger.success("MSR register values for Zen4 applied: ON")
                 elif mode == "show":
                     run_as_sudo("rdmsr -a 0xc0011020")
                     run_as_sudo("rdmsr -a 0xc0011021")
