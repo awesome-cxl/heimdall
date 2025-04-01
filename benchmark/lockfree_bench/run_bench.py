@@ -2,7 +2,6 @@ import datetime
 import json
 import os
 import re
-import subprocess
 
 import invoke
 import matplotlib.pyplot as plt
@@ -14,66 +13,6 @@ import benchmark.basic_performance.scripts.utils.dvfs as bp_utils_dvfs
 import benchmark.basic_performance.scripts.utils.prefetch as bp_utils_prefetch
 import heimdall.utils.cmd as h_utils_cmd
 import heimdall.utils.path as h_utils_path
-
-
-def run_command(command):
-    """
-    Run a shell command and return its output.
-
-    Args:
-        command (str): The command to execute
-
-    Returns:
-        tuple: (stdout, stderr, return_code)
-    """
-    print(f"{command}")
-    try:
-        # Using subprocess.run (recommended for Python 3.5+)
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,  # Capture stdout and stderr
-            text=True,  # Return string instead of bytes
-            check=False,  # Don't raise exception on non-zero return code
-        )
-
-        return result.stdout, result.stderr, result.returncode
-
-    except Exception as e:
-        return "", str(e), -1
-
-
-def run_command_with_timeout(command: str, timeout: int) -> str:
-    """
-    Execute a shell command with timeout and retry functionality.
-
-    Args:
-        command: Shell command to execute (string or list of strings)
-        timeout: Maximum time to wait for command completion (seconds)
-        max_retries: Maximum number of retry attempts
-        retry_delay: Delay between retries (seconds)
-
-    Returns:
-        Command output as string if successful, None if all retries failed
-    """
-
-    print(f"{command}")
-    try:
-        # Run the command with timeout
-        result = subprocess.run(
-            command,
-            shell=True,
-            timeout=timeout,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        return result.stdout, result.stderr, result.returncode
-
-    except subprocess.TimeoutExpired:
-        return "", "timeout", -2
-    except Exception as e:
-        return "", str(e), -1
 
 
 def install_deps():
@@ -164,17 +103,14 @@ def run(machine: str, timestamp: str, results: map):
         h_utils_path.get_workspace_path() / "benchmark/lockfree_bench"
     ):
         # disable automatic numa balancing globally
-        h_utils_cmd.run("echo 0 | sudo tee /proc/sys/kernel/numa_balancing")
+        h_utils_cmd.run(
+            "bash -c 'echo 0 | tee /proc/sys/kernel/numa_balancing'", sudo=True
+        )
 
-        # bp_utils_prefetch.control_prefetch()
         bp_utils_prefetch.set_prefetcher("on")
         # bp_utils_prefetch.set_prefetcher("off")
 
         # set cpu scaling governor to performance mode
-        # for file_path in glob.glob(
-        # "/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
-        # ):
-        #     h_utils_cmd.run(f"echo performance | sudo tee {file_path}")
         bp_utils_dvfs.set_cpu_boost("performance")
 
         loop_rounds = 1000000
@@ -183,14 +119,14 @@ def run(machine: str, timestamp: str, results: map):
             "queue": ["boost_spsc_queue", "boost_mpmc_queue"],
             "map": [
                 "folly_atomichashmap_map",
-                "libcds_michaelhashmap_map",
-                # "libcds_feldmanhashmap_map",
-                # "libcds_skiplistmap_map",
-                # "libcds_bronsonavltreemap_map",
                 "junction_linearmap_map",
                 "junction_leapfrogmap_map",
+                "libcds_michaelhashmap_map",
+                # "libcds_feldmanhashmap_map", # too slow
+                # "libcds_skiplistmap_map", # too slow
+                # "libcds_bronsonavltreemap_map", # too slow
+                # "junction_grampamap_map", # not working
             ],
-            # "junction_grampamap_map"], not working
         }
 
         # {
@@ -218,20 +154,31 @@ def run(machine: str, timestamp: str, results: map):
                 "diff_setter_CXL": [0, 20, 0, 1, 2],
                 "diff_getter_CXL": [20, 0, 1, 0, 2],
             },
-            "stormbreaker": {
+            # "stormbreaker": {
+            #     "same_local_DIMM": [0, 1, 0, 0, 0],
+            #     "same_remote_DIMM": [0, 1, 0, 0, 2],
+            #     "same_local_CXL": [0, 1, 0, 0, 4],
+            #     "same_remote_CXL": [20, 21, 2, 2, 4],
+            #     "diff_setter_DIMM": [0, 20, 0, 2, 0],
+            #     "diff_getter_DIMM": [0, 20, 0, 2, 2],
+            #     "diff_setter_CXL": [0, 20, 0, 2, 4],
+            #     "diff_getter_CXL": [20, 0, 2, 0, 4],
+            # },
+            "titan": {
                 "same_local_DIMM": [0, 1, 0, 0, 0],
-                "same_remote_DIMM": [0, 1, 0, 0, 2],
-                "same_local_CXL": [0, 1, 0, 0, 4],
-                "same_remote_CXL": [20, 21, 2, 2, 4],
-                "diff_setter_DIMM": [0, 20, 0, 2, 0],
-                "diff_getter_DIMM": [0, 20, 0, 2, 2],
-                "diff_setter_CXL": [0, 20, 0, 2, 4],
-                "diff_getter_CXL": [20, 0, 2, 0, 4],
+                "same_remote_DIMM": [0, 1, 0, 0, 1],
+                "same_local_CXL": [0, 1, 0, 0, 2],
+                "same_remote_CXL": [32, 33, 1, 1, 2],
+                "diff_setter_DIMM": [0, 32, 0, 1, 0],
+                "diff_getter_DIMM": [0, 32, 0, 1, 1],
+                "diff_setter_CXL": [0, 32, 0, 1, 2],
+                "diff_getter_CXL": [32, 0, 1, 0, 2],
             },
         }
 
-        # ds_size_mbs = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
-        ds_size_mbs = [8, 16, 32]
+        ds_size_mbs = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+        # ds_size_mbs = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
+        # ds_size_mbs = [8, 16, 32]
 
         log_file = f"results/log_{machine}_{timestamp}"
         with open(log_file, "w") as f:
@@ -282,7 +229,7 @@ def run(machine: str, timestamp: str, results: map):
                                     f.write(
                                         f"Config: {ds} {ds_type} "
                                         f"{numa_config_name} {ds_size_mb}MB\n"
-                                        f"Reults got: {time_val_get}\n"
+                                        f"Results got: {time_val_get}\n"
                                         f"Command: {cmd}\n"
                                         f"Output: {stdout}\n"
                                     )
@@ -301,7 +248,7 @@ def run(machine: str, timestamp: str, results: map):
                                         f.write(
                                             f"Config: {ds} {ds_type} "
                                             f"{numa_config_name} {ds_size_mb}MB\n"
-                                            f"Reults got: {time_val_get + 1}\n"
+                                            f"Results got: {time_val_get + 1}\n"
                                             f"Max retry times reached: "
                                             f"{max_second_try_times}\n"
                                         )
@@ -315,11 +262,18 @@ def run(machine: str, timestamp: str, results: map):
                                         f.write(
                                             f"Config: {ds} {ds_type} "
                                             f"{numa_config_name} {ds_size_mb}MB\n"
-                                            f"Reults got: {time_val_get + 1}\n"
+                                            f"Results got: {time_val_get + 1}\n"
                                             f"Retry times: {second_try_times}\n"
                                         )
                                 except Exception as e:
+                                    time_val_get += 1
+
                                     logger.debug(str(e))
+                                    f.write(
+                                        f"Config: {ds} {ds_type} "
+                                        f"{numa_config_name} {ds_size_mb}MB\n"
+                                        f"Error msg: {str(e)}\n"
+                                    )
 
                             df = pd.DataFrame(time_vals, columns=["time"])
                             avg_time = df["time"].mean()
