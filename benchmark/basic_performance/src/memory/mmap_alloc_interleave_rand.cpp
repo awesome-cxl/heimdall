@@ -27,7 +27,7 @@
  */
 
 #include <iostream>
-#include <memory/mmap_alloc_interleave.h>
+#include <memory/mmap_alloc_interleave_rand.h>
 #include <numa.h>
 #include <numaif.h>
 #include <stdexcept>
@@ -38,7 +38,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-size_t MmapAllocInterleave::get_native_page_size() {
+size_t MmapAllocInterleaveRand::get_native_page_size() {
   long sz;
 
   sz = sysconf(_SC_PAGESIZE);
@@ -50,7 +50,7 @@ size_t MmapAllocInterleave::get_native_page_size() {
   return (size_t)sz;
 }
 
-bool MmapAllocInterleave::page_size_is_huge(size_t page_size) {
+bool MmapAllocInterleaveRand::page_size_is_huge(size_t page_size) {
   return page_size > get_native_page_size();
 }
 
@@ -60,7 +60,7 @@ static inline int mbind(void *addr, unsigned long len, int mode,
   return syscall(__NR_mbind, addr, len, mode, nodemask, maxnode, flags);
 }
 
-int MmapAllocInterleave::get_page_size_flags(size_t page_size) {
+int MmapAllocInterleaveRand::get_page_size_flags(size_t page_size) {
   int lg = 0;
 
   if (!page_size || (page_size & (page_size - 1))) {
@@ -77,44 +77,30 @@ int MmapAllocInterleave::get_page_size_flags(size_t page_size) {
   return MAP_HUGETLB | (lg << MAP_HUGE_SHIFT);
 }
 
-std::shared_ptr<struct MemAllocatedTable>
-MmapAllocInterleave::get_allocated_table(void *addr, size_t size, int numa_nums,
-                                         std::vector<uint32_t> &weighted_values,
-                                         size_t page_mask) {
-  auto allocated_table = std::make_shared<struct MemAllocatedTable>();
-  allocated_table->total_size = size;
-  allocated_table->mem_allocated_info.resize(numa_nums);
-  int numa_weight_sum = 0;
+uint32_t MmapAllocInterleaveRand::get_weighted_numa_id(
+    const std::vector<uint32_t> &weighted_values, int numa_nums) {
+  uint32_t total_weight = 0;
+  for (const auto &value : weighted_values) {
+    total_weight += value;
+  }
+
+  uint32_t random_value = rand() % total_weight;
+  uint32_t cumulative_weight = 0;
+
   for (int i = 0; i < numa_nums; ++i) {
-    numa_weight_sum += weighted_values[i];
-  }
-  size_t unit_size = static_cast<size_t>(size / numa_weight_sum) & ~page_mask;
-  if (unit_size == 0) {
-    throw std::runtime_error("Allocation size is too small");
-  }
-  if (unit_size < 1) {
-    throw std::runtime_error("Allocation size is too small");
-  }
-  char *temp_addr = static_cast<char *>(addr);
-  for (int i = 0; i < numa_nums; ++i) {
-    if (weighted_values[i] < 0) {
-      throw std::runtime_error("NUMA node weight must be non-negative");
+    cumulative_weight += weighted_values[i];
+    if (random_value < cumulative_weight) {
+      return i;
     }
-
-    allocated_table->mem_allocated_info[i].addr =
-        static_cast<void *>(temp_addr);
-    allocated_table->mem_allocated_info[i].size =
-        unit_size * weighted_values[i];
-    allocated_table->mem_allocated_info[i].numa_id = i;
-    temp_addr += i * unit_size * weighted_values[i];
   }
-
-  return allocated_table;
+  std::cerr << "Error: Random value exceeds total weight" << std::endl;
+  return -1; // Should never reach here
 }
 
-void *MmapAllocInterleave::alloc_mmap(size_t page_size, size_t size,
-                                      int numa_nums,
-                                      std::vector<uint32_t> &weighted_values) {
+void *
+MmapAllocInterleaveRand::alloc_mmap(size_t page_size, size_t size,
+                                    int numa_nums,
+                                    std::vector<uint32_t> &weighted_values) {
   void *addr;
   size_t pagemask = page_size - 1;
   int flags = MAP_PRIVATE | MAP_ANONYMOUS | get_page_size_flags(page_size);
@@ -129,25 +115,18 @@ void *MmapAllocInterleave::alloc_mmap(size_t page_size, size_t size,
     exit(1);
   }
 
-  auto allocated_table =
-      get_allocated_table(addr, size, numa_nums, weighted_values, pagemask);
-  if (allocated_table == nullptr) {
-    throw std::runtime_error("Failed to allocate memory");
+  if (numa_available() == -1) {
+    throw std::runtime_error("NUMA is not available on this system");
   }
-  for (int numa_idx = 0; numa_idx < numa_nums; ++numa_idx) {
-    if (weighted_values[numa_idx] < 0) {
-      throw std::runtime_error("NUMA node weight must be non-negative");
-    }
-    if (numa_idx >= CoreConfig::MAX_NUMA_NUM) {
-      throw std::runtime_error("NUMA node index exceeds maximum limit");
-    }
-    if (allocated_table->mem_allocated_info[numa_idx].size == 0) {
-      continue;
-    }
-    bind_to_numa_node(allocated_table->mem_allocated_info[numa_idx].addr,
-                      allocated_table->mem_allocated_info[numa_idx].size,
-                      allocated_table->mem_allocated_info[numa_idx].numa_id);
+
+  auto numa_id = get_weighted_numa_id(weighted_values, numa_nums);
+  if (numa_id >= numa_nums) {
+    std::cerr << "Error: NUMA ID exceeds available NUMA nodes" << std::endl;
+    munmap(addr, size);
+    return nullptr;
   }
+
+  bind_to_numa_node(addr, size, numa_id);
 
   if (!page_size_is_huge(page_size)) {
     if (madvise(addr, size, MADV_NOHUGEPAGE)) {
@@ -158,15 +137,15 @@ void *MmapAllocInterleave::alloc_mmap(size_t page_size, size_t size,
   return addr;
 }
 
-void MmapAllocInterleave::dealloc_mmap(void *addr, size_t size) {
+void MmapAllocInterleaveRand::dealloc_mmap(void *addr, size_t size) {
   if (munmap(addr, size)) {
     perror("munmap");
     exit(1);
   }
 }
 
-void MmapAllocInterleave::bind_to_numa_node(void *addr, size_t size,
-                                            int numa_id) {
+void MmapAllocInterleaveRand::bind_to_numa_node(void *addr, size_t size,
+                                                int numa_id) {
   if (numa_available() == -1) {
     throw std::runtime_error("NUMA is not available on this system");
   }

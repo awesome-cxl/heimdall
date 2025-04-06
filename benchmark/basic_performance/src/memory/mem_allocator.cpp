@@ -31,12 +31,14 @@
 #include <memory/mem_allocator.h>
 #include <memory/mmap_alloc.h>
 #include <memory/mmap_alloc_interleave.h>
+#include <memory/mmap_alloc_interleave_rand.h>
 #include <memory/phys_cont_mem.h>
 #include <sys/mman.h>
 
 PhysContMem *memory_manager = nullptr;
 MmapAlloc *mmap_manager = nullptr;
 MmapAllocInterleave *mmap_interleave_manager = nullptr;
+MmapAllocInterleaveRand *mmap_interleave_rand_manager = nullptr;
 
 void *MemAllocator::allocate(size_t size, int numa_id, MemAllocType alloc_type,
                              std::vector<uint32_t> &numa_weight) {
@@ -47,11 +49,18 @@ void *MemAllocator::allocate(size_t size, int numa_id, MemAllocType alloc_type,
     return mmap_manager->alloc_mmap(mmap_manager->get_native_page_size(), size,
                                     numa_id);
   } else if (alloc_type == MemAllocType::INTERLEAVED_PAGE) {
-    if (mmap_interleave_manager == nullptr) {
-      mmap_interleave_manager = new MmapAllocInterleave();
+    // if (mmap_interleave_manager == nullptr) {
+    //   mmap_interleave_manager = new MmapAllocInterleave();
+    // }
+    if (mmap_interleave_rand_manager == nullptr) {
+      mmap_interleave_rand_manager = new MmapAllocInterleaveRand();
     }
-    return mmap_interleave_manager->alloc_mmap(
-        mmap_interleave_manager->get_native_page_size(), size, numa_id,
+
+    // return mmap_interleave_manager->alloc_mmap(
+    //     mmap_interleave_manager->get_native_page_size(), size, numa_id + 1,
+    //     numa_weight);
+    return mmap_interleave_rand_manager->alloc_mmap(
+        mmap_interleave_rand_manager->get_native_page_size(), size, numa_id + 1,
         numa_weight);
   } else if (alloc_type == MemAllocType::CONTIGUOUS_HUGE_PAGE) {
     if (!memory_manager) {
@@ -86,10 +95,14 @@ void MemAllocator::deallocate(void *ptr, size_t size, MemAllocType alloc_type) {
     }
     mmap_manager->dealloc_mmap(ptr, size);
   } else if (alloc_type == MemAllocType::INTERLEAVED_PAGE) {
-    if (mmap_interleave_manager == nullptr) {
-      mmap_interleave_manager = new MmapAllocInterleave();
+    // if (mmap_interleave_manager == nullptr) {
+    //   mmap_interleave_manager = new MmapAllocInterleave();
+    // }
+    if (mmap_interleave_rand_manager == nullptr) {
+      mmap_interleave_rand_manager = new MmapAllocInterleaveRand();
     }
-    mmap_interleave_manager->dealloc_mmap(ptr, size);
+    // mmap_interleave_manager->dealloc_mmap(ptr, size);
+    mmap_interleave_rand_manager->dealloc_mmap(ptr, size);
   } else if (alloc_type == MemAllocType::CONTIGUOUS_HUGE_PAGE) {
     if (!memory_manager) {
       memory_manager = new PhysContMem();
