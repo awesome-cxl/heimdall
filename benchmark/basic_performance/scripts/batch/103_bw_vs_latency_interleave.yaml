@@ -17,7 +17,7 @@ pattern_iteration_array: [2]
 thread_buffer_size array_megabyte: [512] #MiB unit
 
 # NUMA IDs for threads that generate BW and latency load
-core_socket_array: [0, 1]
+core_socket_array: [0]
 
 # NUMA IDs for to target for BW and latency measurements
 numa_node_array: [2]
