@@ -34,7 +34,7 @@ from loguru import logger
 def plot_weight_vs_bandwidth_and_save(df, output_file, title_prefix):
     grouped = df.groupby(["Access Type"])
     plt.figure(figsize=(10, 6))
-    for (access_type), group in grouped[0:1]:
+    for (access_type), group in grouped:
         plt.bar(
             group["NUMA Weight"],
             group["Total Bandwidth (MiB/s)"] / 1024,  # Convert to GB/s
@@ -52,7 +52,7 @@ def plot_weight_vs_bandwidth_and_save(df, output_file, title_prefix):
 def plot_weight_vs_latency_and_save(df, output_file, title_prefix):
     grouped = df.groupby(["Access Type"])
     plt.figure(figsize=(10, 6))
-    for (access_type), group in grouped[0:1]:
+    for (access_type), group in grouped:
         plt.bar(
             group["NUMA Weight"],
             group["Measured Latency (ns)"],
