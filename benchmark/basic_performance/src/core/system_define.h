@@ -32,25 +32,26 @@
 #include <machine_define.h>
 
 enum class NumaId : uint32_t {
-    NODE_0  = 0,
-    NODE_1 = 1,
-    NODE_2 = 2,
-    NODE_3 = 3,
-    NODE_4 = 4,
-    NODE_5 = 5,
-    MAX_NUMA_ID = 6,
+  NODE_0 = 0,
+  NODE_1 = 1,
+  NODE_2 = 2,
+  NODE_3 = 3,
+  NODE_4 = 4,
+  NODE_5 = 5,
+  MAX_NUMA_ID = 6,
 };
 
 enum SocketId : uint32_t {
-    SOCKET_0 = 0,
-    SOCKET_1 = 1,
-    MAX_SOCKET_ID = 2,
+  SOCKET_0 = 0,
+  SOCKET_1 = 1,
+  MAX_SOCKET_ID = 2,
 };
 
 enum class JobId : uint32_t {
   BANDWIDTH_LATENCY = 100,
   BANDWIDTH = 101,
   LATENCY = 102,
+  INTERLEAVED_BW = 103,
   POINTER_CHASE = 200,
 };
 
@@ -73,6 +74,7 @@ enum class MachineType : uint32_t {
 enum class MemAllocType : uint32_t {
   CONTIGUOUS_HUGE_PAGE = 0,
   NON_CONTIGUOUS_HUGE_PAGE = 1,
+  INTERLEAVED_PAGE = 2,
 };
 
 enum class CHASING_TYPE : uint32_t {
@@ -119,6 +121,7 @@ class CoreConfig {
 public:
   static const uint64_t CORE_NUMBER_PER_SOCKET = CORE_NUM_PER_SOCKET_DEF;
   static const uint64_t MAX_SOCKET_NUM = MAX_SOCKET_NUM_DEF;
+  static const uint64_t MAX_NUMA_NUM = 10;
 };
 
 #endif // CXL_PERF_APP_DT_SYSTEM_DEFINE_H

@@ -36,7 +36,8 @@ public:
   MemAllocator() = default;
   ~MemAllocator() = default;
 
-  static void *allocate(size_t size, int numa_id, MemAllocType alloc_type);
+  static void *allocate(size_t size, int numa_id, MemAllocType alloc_type,
+                        std::vector<uint32_t> &numa_weight);
   static void deallocate(void *ptr, size_t size, MemAllocType alloc_type);
 };
 

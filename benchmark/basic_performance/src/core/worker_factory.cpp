@@ -33,6 +33,8 @@ WorkerFactory::WorkerFactory() {
       std::make_shared<WorkerHandlerForBwVsLatency>();
   _handlers[JobId::BANDWIDTH] = std::make_shared<WorkerHandlerForBandwidth>();
   _handlers[JobId::LATENCY] = std::make_shared<WorkerHandlerForLatency>();
+  _handlers[JobId::INTERLEAVED_BW] =
+      std::make_shared<WorkerHandlerForBwVsLatency>();
 }
 
 WorkerFactory::~WorkerFactory() {}

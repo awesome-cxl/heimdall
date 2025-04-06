@@ -100,7 +100,7 @@ def build_cache(build_type):
 
 
 def build(machine_type, build_type, task_id):
-    if task_id in ["100", "101", "102"]:
+    if task_id in ["100", "101", "102", "103"]:
         build_bw_latency(machine_type, build_type)
     elif task_id in ["200"]:
         build_cache(build_type)

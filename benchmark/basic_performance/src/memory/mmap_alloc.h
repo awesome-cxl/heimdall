@@ -33,8 +33,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAX_MEM_NODES (8 * sizeof(uint64_t))
-
 class MmapAlloc {
 public:
   MmapAlloc() = default;

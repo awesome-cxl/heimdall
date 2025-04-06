@@ -41,8 +41,13 @@ import benchmark.basic_performance.scripts.utils.prefetch as prefetch
 import benchmark.basic_performance.scripts.utils.slack as slack
 import benchmark.basic_performance.scripts.utils.smt as smt
 from benchmark.basic_performance.scripts.utils.sudo import run_as_sudo
+from benchmark.basic_performance.scripts.utils.utils import (
+    get_cpu_number,
+    get_free_memsize,
+    get_thread_per_core,
+)
 from heimdall.utils.path import get_workspace_path
-from benchmark.basic_performance.scripts.utils.utils import get_cpu_number, get_thread_per_core, get_free_memsize
+
 
 def extract_task_number(file_path):
     match = re.search(r"/(\d+)_.*\.yaml$", file_path)
@@ -177,6 +182,7 @@ def make_yaml_file(
     pattern_iteration,
     bw_load_pattern_block_size,
     bw_store_pattern_block_size,
+    interleave_weights,
 ):
     config = {
         "job_id": job_id,
@@ -195,37 +201,42 @@ def make_yaml_file(
         "pattern_iteration": pattern_iteration,
         "bw_load_pattern_block_size": bw_load_pattern_block_size,
         "bw_store_pattern_block_size": bw_store_pattern_block_size,
+        "interleave_weights": interleave_weights,
     }
     with open(output_path, "w") as file:
         yaml.dump(config, file)
     pass
 
 
-def run_all(
-    script_path, build_type, output_path):
+def run_all(script_path, build_type, output_path):
     make_dir(script_path, output_path)
     bin_path = get_bin_path(build_type)
     cmd = f"sudo {bin_path} -f {script_path} -o {output_path}"
     run_as_sudo(cmd)
     pass
 
+
 def get_thread_num_array(thread_num_type: int, config: dict, machine_type: str):
-    if thread_num_type == 0 : # user defined
+    if thread_num_type == 0:  # user defined
         return config["thread_num_array"]
-    elif thread_num_type: # Automatic thread detection with custom step size
+    elif thread_num_type:  # Automatic thread detection with custom step size
         total_thread = get_cpu_number(machine_type) * get_thread_per_core(machine_type)
         return [i for i in range(1, total_thread, thread_num_type)]
-    
+
+
 def validate_buffer_size(buffer_size, numa_node, machine_type):
     total_thread = get_cpu_number(machine_type) * get_thread_per_core(machine_type)
     free_mem = get_free_memsize(numa_node)
     if buffer_size * total_thread > free_mem:
-        logger.error(f"Error: Not enough memory for buffer size {buffer_size}MB, free memory: {free_mem}MB")
+        logger.error(
+            f"Error: Not enough memory {buffer_size}MB, free memory: {free_mem}MB"
+        )
         return False
     return True
 
+
 def search_valid_buffer_size(buffer_size, numa_node, machine_type):
-    logger.info(f"Start to retrieve valid buffer size")
+    logger.info("Start to retrieve valid buffer size")
     free_mem = get_free_memsize(numa_node)
     thread_num = get_cpu_number(machine_type) * get_thread_per_core(machine_type)
     while buffer_size * thread_num > free_mem:
@@ -233,9 +244,12 @@ def search_valid_buffer_size(buffer_size, numa_node, machine_type):
     logger.info(f"Valid buffer size: {buffer_size}MB")
     return buffer_size
 
+
 def run_bw_latency_test(script_path, build_type, output_path, machine_type):
     config = load_config(script_path)
-    thread_num_array = get_thread_num_array(config["thread_num_type"], config, machine_type)
+    thread_num_array = get_thread_num_array(
+        config["thread_num_type"], config, machine_type
+    )
     print(f"thread_num_array: {thread_num_array}")
     param_combinations = itertools.product(
         config["numa_node_array"],
@@ -253,6 +267,7 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
         config["pattern_iteration_array"],
         config["bandwidth_load_pattern_block_size"],
         config["bandwidth_store_pattern_block_size"],
+        config["interleave_weights"],
     )
     prepare_run(script_path, machine_type)
     for (
@@ -271,9 +286,12 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
         pattern_iteration,
         bw_load_pattern_block_size,
         bw_store_pattern_block_size,
+        interleave_weights,
     ) in param_combinations:
         if not validate_buffer_size(thread_buffer_size, numa_node, machine_type):
-           thread_buffer_size = search_valid_buffer_size(thread_buffer_size, numa_node, machine_type)
+            thread_buffer_size = search_valid_buffer_size(
+                thread_buffer_size, numa_node, machine_type
+            )
         yaml_path = (
             get_workspace_path()
             / "benchmark"
@@ -300,9 +318,9 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
             pattern_iteration,
             bw_load_pattern_block_size,
             bw_store_pattern_block_size,
+            interleave_weights,
         )
-        run_all(
-            yaml_path, build_type, output_path)
+        run_all(yaml_path, build_type, output_path)
         if build_type in ["designtest"]:
             break
     wrap_up_run(script_path, yaml_path, machine_type)
@@ -310,7 +328,7 @@ def run_bw_latency_test(script_path, build_type, output_path, machine_type):
 
 
 def run_batch(script_path, build_type, output_path, machine_type, task_id):
-    if task_id in ["100", "101", "102"]:
+    if task_id in ["100", "101", "102", "103"]:
         run_bw_latency_test(script_path, build_type, output_path, machine_type)
     elif task_id in ["200"]:
         cache_batch.run_cache_test(script_path, output_path)

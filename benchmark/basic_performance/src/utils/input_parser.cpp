@@ -27,6 +27,8 @@
  */
 
 #include <iostream>
+#include <sstream>
+#include <string>
 #include <utils/input_parser.h>
 #include <yaml-cpp/yaml.h>
 
@@ -84,8 +86,26 @@ std::shared_ptr<JobInfo> InputParserForBW::parse(const fs::path &input_file) {
   job_info->pattern_iteration = yaml_file["pattern_iteration"].as<uint32_t>();
   job_info->thread_buffer_size =
       yaml_file["thread_buffer_size"].as<uint64_t>() * MEMUNIT::MiB;
+
+  get_numa_weight(yaml_file["interleave_weights"].as<std::string>(),
+                  job_info->numa_weight);
   std::cout << "Job ID: " << static_cast<uint32_t>(job_info->job_id) << "\n";
   return job_info;
+}
+
+void InputParserForBW::get_numa_weight(std::string numa_weigth,
+                                       std::vector<uint32_t> &numa_weight_vec) {
+  std::stringstream ss(numa_weigth);
+  std::string token;
+  while (std::getline(ss, token, '_')) {
+    uint32_t weight = std::stoi(token);
+    numa_weight_vec.push_back(weight);
+  }
+  std::cout << "NUMA weight: ";
+  for (const auto &weight : numa_weight_vec) {
+    std::cout << weight << " ";
+  }
+  std::cout << "\n";
 }
 
 std::tuple<std::string, std::string> InputParserForCache::parse(int argc,

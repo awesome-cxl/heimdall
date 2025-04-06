@@ -15,6 +15,8 @@ def build(config: str):
     logger.info("Build basic performance benchmarks")
     if config in ["bw"]:
         build_task("100")
+    elif config in ["interleaved"]:
+        build_task("103")
     elif config in ["cache"]:
         build_task("200")
     elif config in ["all"]:
@@ -29,6 +31,8 @@ def run(config: str):
     logger.info("Run basic performance benchmarks")
     if config in ["bw"]:
         run_task("100")
+    elif config in ["interleaved"]:
+        run_task("103")
     elif config in ["cache"]:
         run_task("200")
     elif config in ["all"]:

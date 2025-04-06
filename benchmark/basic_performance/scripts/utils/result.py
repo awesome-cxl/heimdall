@@ -26,8 +26,10 @@
 
 from loguru import logger
 
+import benchmark.basic_performance.scripts.parse.bw_interleave_parser as bw_parser
 import benchmark.basic_performance.scripts.parse.bw_latency_parser as parser
 import benchmark.basic_performance.scripts.parse.cache_parser as cache_parser
+import benchmark.basic_performance.scripts.plot.bw_interleave_plot as bw_plotter
 import benchmark.basic_performance.scripts.plot.bw_latency_plot as plotter
 
 
@@ -36,6 +38,9 @@ def make_result(base_dir, task_id):
     if task_id in ["100"]:  # bw_latency
         parser.parse_bw_latency(base_dir)
         plotter.plot_bw_latency(base_dir)
+    elif task_id in ["103"]:  # bw_interleave
+        bw_parser.parse_bw_weighted_numa(base_dir)
+        bw_plotter.plot_bw_weighted_numa(base_dir)
     elif task_id in ["200"]:
         cache_parser.parse_and_plot(base_dir)
     else:

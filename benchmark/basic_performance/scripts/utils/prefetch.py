@@ -62,6 +62,7 @@ def set_prefetcher_intel(mode):
     else:
         logger.error(f"Invalid mode: {mode}")
 
+
 def extract_cpu_info():
     cpu_family = None
     cpu_model = None
@@ -75,13 +76,14 @@ def extract_cpu_info():
                 break
     return int(cpu_family), int(cpu_model)
 
+
 def set_prefetcher_amd(mode):
     try:
         cpu_family, cpu_model = extract_cpu_info()
         logger.info(f"cpu family: {cpu_family}")
         logger.info(f"cpu model: {cpu_model}")
-        if cpu_family is 25:
-            if cpu_mode is 17 or cpu_mode is 144:
+        if cpu_family == 25:
+            if cpu_model == 17 or cpu_model == 144:
                 logger.info("Detected Zen4 CPU")
                 if mode == "off":
                     run_as_sudo("wrmsr -a 0xc0011020 0x4400000000000")
@@ -123,15 +125,17 @@ def set_prefetcher_amd(mode):
                     run_as_sudo("rdmsr -a 0xc001102b")
                 else:
                     logger.error(f"Invalid mode: {mode}")
-        elif cpu_family is 26:
-            if cpu_model is 2:
+        elif cpu_family == 26:
+            if cpu_model == 2:
                 logger.info("Detected Zen5 CPU")
                 if mode == "off":
                     run_as_sudo("wrmsr -a 0xc0011020 4004400000000000")
-                    # bit 5 off -> op prefetch off https://chipsandcheese.com/p/disabling-zen-5s-op-cache-and-exploring 
-                    run_as_sudo("wrmsr -a 0xc0011021 20000000000040") 
+                    # bit 5 off -> op prefetch off
+                    # https://chipsandcheese.com/p/disabling-zen-5s-op-cache-and-exploring
+                    run_as_sudo("wrmsr -a 0xc0011021 20000000000040")
                     run_as_sudo("wrmsr -a 0xc0011022 370000000000000")
-                    # opmode bit 0 off -> L1/L2 Prefetcher off, check the difference between BIOS setting on and off
+                    # opmode bit 0 off -> L1/L2 Prefetcher off,
+                    #  check the difference between BIOS setting on and off
                     run_as_sudo("wrmsr -a 0xc001102b 50cc14")
                     logger.success("MSR register values for Zen4 applied: OFF")
                 elif mode == "on":

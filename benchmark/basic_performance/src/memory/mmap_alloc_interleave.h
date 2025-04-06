@@ -26,43 +26,42 @@
  *
  */
 
-#ifndef CXL_PERF_APP_DT_INPUT_PARSER_H
-#define CXL_PERF_APP_DT_INPUT_PARSER_H
-#include <core/data_structure.h>
-#include <filesystem>
-#include <iostream>
-#include <string>
-#include <yaml-cpp/yaml.h>
+#ifndef CXL_PERF_APP_DT_MMAP_ALLOC_INTERLEAVE_H
+#define CXL_PERF_APP_DT_MMAP_ALLOC_INTERLEAVE_H
 
-namespace fs = std::filesystem;
-
-class InputParser {
-public:
-  InputParser() = default;
-  ~InputParser() = default;
-
-  virtual std::tuple<std::string, std::string> parse(int argc,
-                                                     char *argv[]) = 0;
+#include <core/system_define.h>
+#include <memory>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <vector>
+struct MemAllocatedInfo {
+  void *addr;
+  size_t size;
+  int numa_id;
 };
 
-class InputParserForBW : public InputParser {
-public:
-  InputParserForBW() = default;
-  ~InputParserForBW() = default;
-
-  std::tuple<std::string, std::string> parse(int argc, char *argv[]) override;
-  std::shared_ptr<JobInfo> parse(const fs::path &input_file);
-  void get_numa_weight(std::string numa_weigth,
-                       std::vector<uint32_t> &numa_weight_vec);
+struct MemAllocatedTable {
+  std::vector<struct MemAllocatedInfo> mem_allocated_info;
+  size_t total_size;
 };
 
-class InputParserForCache : public InputParser {
+class MmapAllocInterleave {
 public:
-  InputParserForCache() = default;
-  ~InputParserForCache() = default;
+  MmapAllocInterleave() = default;
+  ~MmapAllocInterleave() = default;
+  void *alloc_mmap(size_t page_size, size_t size, int numa_nums,
+                   std::vector<uint32_t> &weighted_values);
+  void dealloc_mmap(void *addr, size_t size);
+  size_t get_native_page_size();
 
-  std::tuple<std::string, std::string> parse(int argc, char *argv[]) override;
-  void parse(const fs::path &input_file, pchasing_args_t *args);
+private:
+  int get_page_size_flags(size_t page_size);
+  bool page_size_is_huge(size_t page_size);
+  void bind_to_numa_node(void *addr, size_t size, int numa_id);
+  std::shared_ptr<struct MemAllocatedTable>
+  get_allocated_table(void *addr, size_t size, int numa_nums,
+                      std::vector<uint32_t> &weighted_values, size_t page_mask);
 };
 
-#endif // CXL_PERF_APP_DT_INPUT_PARSER_H
+#endif // CXL_PERF_APP_DT_MMAP_ALLOC_INTERLEAVE_H
