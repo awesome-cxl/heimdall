@@ -90,12 +90,14 @@ def set_prefetcher_amd(mode):
                     run_as_sudo("wrmsr -a 0xc0011021 0x4000000000040")
                     run_as_sudo("wrmsr -a 0xc0011022 0x8680000401570000")
                     run_as_sudo("wrmsr -a 0xc001102b 0x2040cc10")
+                    run_as_sudo("wrmsr -a 0xc0000108 0x2f")
                     logger.success("MSR register values for Zen4 applied: OFF")
                 elif mode == "on":
                     run_as_sudo("wrmsr -a 0xc0011020 0x4400200000000")
                     run_as_sudo("wrmsr -a 0xc0011021 0x4000000000040")
                     run_as_sudo("wrmsr -a 0xc0011022 0x8680000401500000")
                     run_as_sudo("wrmsr -a 0xc001102b 0x2040cc15")
+                    run_as_sudo("wrmsr -a 0xc0000108 0x0") 
                     logger.success("MSR register values for Zen4 applied: ON")
                 elif mode == "show":
                     run_as_sudo("rdmsr -a 0xc0011020")
@@ -137,12 +139,14 @@ def set_prefetcher_amd(mode):
                     # opmode bit 0 off -> L1/L2 Prefetcher off,
                     #  check the difference between BIOS setting on and off
                     run_as_sudo("wrmsr -a 0xc001102b 50cc14")
+                    run_as_sudo("wrmsr -a 0xc0000108 0x2f")
                     logger.success("MSR register values for Zen4 applied: OFF")
                 elif mode == "on":
                     run_as_sudo("wrmsr -a 0xc0011020 4004400000000000")
                     run_as_sudo("wrmsr -a 0xc0011021 20000000000040")
                     run_as_sudo("wrmsr -a 0xc0011022 0x370000000000000")
                     run_as_sudo("wrmsr -a 0xc001102b 0x50cc15")
+                    run_as_sudo("wrmsr -a 0xc0000108 0x3c0")
                     logger.success("MSR register values for Zen4 applied: ON")
                 elif mode == "show":
                     run_as_sudo("rdmsr -a 0xc0011020")
