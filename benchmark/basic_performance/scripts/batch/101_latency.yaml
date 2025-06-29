@@ -1,0 +1,25 @@
+job_id: 101 # enum class JobId : uint32_t  @ src/core/system_define.h
+thread_num_array: [1]
+pattern_iteration_array: [5]
+thread_buffer_size array_megabyte: [512] #MiB unit
+access_size_array_byte:
+  - 1048576  # 2 ** 20
+stride_size_array_byte:
+  - 64
+block_size_array_byte:
+  - 64
+access_type_array: # enum class AccessType : uint32_t @ src/core/system_define.h
+  - 0 # 0: Local Node
+  - 1 # 1: Remote Node
+memory_device_array: # enum class DeviceType : uint32_t @ src/core/system_define.h
+  - 1 # 1: DIMM
+latency_array:
+  - 0
+loadstore_array: # enum class LoadStoreType : uint32_t @ src/core/system_define.h
+  - 0  # 0: Load
+mem_alloc_type_array: # enum class MemAllocType : uint32_t @ src/core/system_define.h
+  - 1 # 1: NON-CONTIGUOUS
+latency_pattern_array: # enum class LoadPattern
+  - 1 # RANDOM Pointer Chasing
+bandwidth_pattern_array: # enum class BwPattern
+  - 1 # SIMMPLE_INCREMENT

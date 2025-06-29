@@ -1,0 +1,4 @@
+[formatting]
+align_entries = true
+column_width  = 140
+reorder_keys  = true

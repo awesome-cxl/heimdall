@@ -1,0 +1,99 @@
+[project]
+authors = [
+  { name = "Zixuan Wang", email = "zxwang42@gmail.com" },
+  { name = "Jangseon Park", email = "jap036@ucsd.com" },
+  { name = "Luyi Li", email = "lul014@ucsd.edu" },
+  { name = "Suyash Mahar", email = "smahar@ucsd.edu" },
+  { name = "Mingyao Shen", email = "myshen@ucsd.edu" },
+  { name = "Jinpyo Kim", email = "jik066@ucsd.edu" },
+]
+dependencies = [
+  "typer (>=0.15.1,<0.16.0)",
+  "loguru (>=0.7.3,<0.8.0)",
+  "invoke (>=2.2.0,<3.0.0)",
+  "requests (>=2.32.3,<3.0.0)",
+  "python-dotenv (>=1.0.1,<2.0.0)",
+  "pyyaml (>=6.0.2,<7.0.0)",
+  "matplotlib (>=3.10.0,<4.0.0)",
+  "pandas (>=2.2.3,<3.0.0)",
+  "seaborn (>=0.13.2,<0.14.0)",
+  "rich (>=13.9.4,<14.0.0)",
+  "huggingface_hub>=0.28.0",
+  "numpy (>=1.26,<2.0.0)",
+]
+description = "Heterogeneous Memory Benchmark Suite"
+license = { text = "MIT" }
+name = "heimdall"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+version = "1.0.0"
+
+[project.scripts]
+heimdall = "heimdall.heimdall:app"
+
+[build-system]
+build-backend = "uv_build"
+requires = ["uv_build>=0.6,<0.7"]
+
+[tool.uv.build-backend]
+module-root="."
+
+[dependency-groups]
+dev = ["pyinstaller>=6.12.0,<7"]
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".ipynb_checkpoints",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pyenv",
+  ".pytest_cache",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  ".vscode",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "site-packages",
+  "venv",
+]
+
+indent-width = 4
+line-length  = 120
+
+target-version = "py313"
+
+[tool.ruff.lint]
+ignore = ["E402"]
+select = ["I", "E4", "E7", "E9", "F"]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable   = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+docstring-code-format      = true
+docstring-code-line-length = "dynamic"
+indent-style               = "space"
+line-ending                = "auto"
+quote-style                = "double"
+skip-magic-trailing-comma  = false

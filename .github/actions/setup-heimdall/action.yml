@@ -1,0 +1,28 @@
+name: "Set up Heimdall dependencies"
+author: "@zxwang42"
+description: "Set up GitHub workflow dependencies for https://github.com/awesome-cxl/heimdall/"
+branding:
+  icon: "truck"
+  color: "gray-dark"
+inputs:
+  python-version:
+    description: "The version of Python to install"
+    required: false
+    default: "3.12"
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Set up env file for basic performance build
+      run: cp benchmark/basic_performance/env_files/machine_template.env benchmark/basic_performance/env_files/$(hostname).env
+      shell: bash
+
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake libnuma-dev
+      shell: bash

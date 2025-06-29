@@ -1,0 +1,42 @@
+# TODO(smahar): Add description
+job_id: 100 # enum class JobId : uint32_t  @ src/core/system_define.h
+
+# 0: use thread_num_array for BW threads
+# 1 or larger: Automatically sweep through the available cores (HT-cores are considered distinct cores) with step size of thread_num_type
+#              E.g., thread_num_type value of 1 would sweep 0, 1, 2, 3... cores
+#                    thread_num_type value of 2 would sweep 0, 2, 4, .... cores
+thread_num_type: 1
+
+# TODO(smahar): Add description
+thread_num_array: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+
+# TODO(smahar): Add description
+pattern_iteration_array: [2]
+
+# TODO(smahar): Add description
+thread_buffer_size array_megabyte: [512] #MiB unit
+
+# NUMA IDs for threads that generate BW and latency load
+core_socket_array: [0, 1]
+
+# NUMA IDs for to target for BW and latency measurements
+numa_node_array: [0, 1]
+delay_array:
+  - 0
+loadstore_array: # enum class LoadStoreType : uint32_t @ src/core/system_define.h
+  - 0  # 0: Load
+  - 1  # 1: Store
+mem_alloc_type_array: # enum class MemAllocType : uint32_t @ src/core/system_define.h
+  - 1 # 1: NON-CONTIGUOUS
+latency_pattern_array: # enum class LoadPattern
+  - 1 # RANDOM Pointer Chasing
+latency_pattern_stride_size_array_byte:
+  - 64
+latency_pattern_block_size_array_byte:
+  - 64
+latency_pattern_access_size_array_byte:
+  - 1048576  # 2 ** 20
+bandwidth_pattern_array: # enum class BwPattern
+  - 1 # SIMMPLE_INCREMENT
+bandwidth_load_pattern_block_size: [256] # enum class BwPatternSize
+bandwidth_store_pattern_block_size: [256] # enum class BwPatternSize

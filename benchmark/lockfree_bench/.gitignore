@@ -1,0 +1,21 @@
+*.out
+*.asm
+*.log
+*.pdf
+*.o
+
+# *.clang-format
+
+downloads/*
+libs/*
+
+results/*
+figures/*
+
+bench
+
+perf.*
+*.perf
+*.svg
+
+.vscode

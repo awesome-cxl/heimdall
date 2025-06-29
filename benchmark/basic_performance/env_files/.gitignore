@@ -1,0 +1,2 @@
+# Ignore the user env file which contains user password
+self.env
