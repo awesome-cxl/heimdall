@@ -39,6 +39,27 @@ Benchmarks are implemented under the `benchmark/` sub dir. Check each benchmark'
 2. [Lock-Free Datastructure](./benchmark/lockfree_bench/README.md)
 3. [LLM](./benchmark/llm_bench/README.md)
 
+### Standalone Benchmark
+If you need a portable standalone executable of heimdall (in case your experiment machine does not have internet or cannot install python packages), then:
+
+```console
+$ make standalone # Executables are under dist/
+$ cd ..
+$ tar -zcvf heimdall.tar.gz heimdall/
+$ scp heimdall.tar.gz <remote-machine>
+```
+
+Then, on the remote machine:
+
+```console
+$ tar -zxvf heimdall.tar.gz
+$ cd heimdall
+$ ./dist/heimdall <sub-commands>
+```
+
+> [!NOTE]  
+> Make sure the heimdall source repo is copied with the standalone binary, because all the C/C++ source code are needed and they are not part of the standalone binary
+
 ## Citation
 
 ```bibtex
