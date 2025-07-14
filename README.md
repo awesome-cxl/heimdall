@@ -8,6 +8,7 @@ Heimdall is a benchmark suite to profile the heterogeneous memory systems, inclu
 
 To install and use Heimdall, please follow these instructions. Currently, Heimdall is supported on Ubuntu 22.04.
 
+> [!NOTE]
 > While it is possible to run the benchmarks on other platforms, non Ubuntu/Debian-based distributions would require manually installing the dependencies (search the repo for `apt` to see all such dependencies).
 
 ### Install dependencies
