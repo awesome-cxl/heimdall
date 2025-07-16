@@ -386,7 +386,7 @@ static int pointer_chasing_thread(void *data)
       base_addr_virt = phys_to_virt(base_addr_phys);
   }
   else if (node_id == cxl_mem_node) {
-      base_addr_phys = cxl_start_addr_phys;
+      base_addr_phys = cxl_start_addr_phys + (1ULL<<30ULL);
       base_addr_virt = phys_to_virt(base_addr_phys);
   }
   else {
