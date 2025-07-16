@@ -27,8 +27,8 @@
 from loguru import logger
 
 import benchmark.basic_performance.scripts.parse.bw_latency_parser as parser
-import benchmark.basic_performance.scripts.parse.cache_parser as cache_parser
 import benchmark.basic_performance.scripts.plot.bw_latency_plot as plotter
+import benchmark.basic_performance.scripts.plot.heatmap_plot as heatmap_plot
 
 
 def make_result(base_dir, task_id):
@@ -37,7 +37,7 @@ def make_result(base_dir, task_id):
         parser.parse_bw_latency(base_dir)
         plotter.plot_bw_latency(base_dir)
     elif task_id in ["200"]:
-        cache_parser.parse_and_plot(base_dir)
+        heatmap_plot.parse_plot_heatmap(base_dir)
     else:
         logger.error("task_id not found in make_result")
         return

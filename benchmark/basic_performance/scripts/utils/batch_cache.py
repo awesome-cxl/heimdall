@@ -47,30 +47,40 @@ from heimdall.utils.path import get_workspace_path
 
 def make_yaml_file(
     yaml_path,
+    test_type,
     repeat,
+    use_flush,
     core_id,
     node_id,
-    use_flush,
+    flush_type,
+    ldst_type,
     access_order,
     dimm_start_addr_phys,
-    dimm_test_size,
+    cxl_start_addr_phys,
+    test_size,
     stride_size,
     block_num,
-    test_size,
+    socket_num,
+    snc_mode
 ):
     with open(yaml_path, "w") as f:
         yaml.dump(
             {
+                "test_type": test_type,
                 "repeat": repeat,
+                "use_flush": use_flush,
                 "core_id": core_id,
                 "node_id": node_id,
-                "use_flush": use_flush,
+                "flush_type": flush_type,
+                "ldst_type": ldst_type,
                 "access_order": access_order,
                 "dimm_start_addr_phys": dimm_start_addr_phys,
-                "dimm_test_size": dimm_test_size,
+                "cxl_start_addr_phys": cxl_start_addr_phys,
+                "test_size": test_size,
                 "stride_size": stride_size,
                 "block_num": block_num,
-                "test_size": test_size,
+                "socket_num": socket_num,
+                "snc_mode": snc_mode,
             },
             f,
         )
@@ -182,7 +192,7 @@ def load_global_env():
     load_dotenv(dotenv_path=path)
     logger.info(f"hostname: {host_name}")
     logger.info(f"dimm_phys_addr: {os.getenv('dimm_physical_start_addr')}")
-    logger.info(f"dimm_test_size: {os.getenv('dimm_test_size')}")
+    logger.info(f"cxl_phys_addr: {os.getenv('cxl_physical_start_addr')}")
 
 
 def run_cache_test(script_path, output_path):
@@ -190,43 +200,52 @@ def run_cache_test(script_path, output_path):
     insert_module()
     load_global_env()
     dimm_phys_addr = os.getenv("dimm_physical_start_addr")
-    dimm_test_size = os.getenv("dimm_test_size")
+    cxl_phys_addr = os.getenv("cxl_physical_start_addr")
+    test_size = int(os.getenv("test_size"), 16)
+    socket_num = int(os.getenv("socket_number"))
+    snc_mode = int(os.getenv("snc_mode"))
+    test_type = config["test_type"]
+    repeat = config["repeat"]
+    use_flush = config["use_flush"]
     param_combinations = itertools.product(
-        config["repeat"],
         config["core_id"],
         config["node_id"],
-        config["use_flush"],
+        config["flush_type"],
+        config["ldst_type"],
         config["access_order"],
         config["stride_size_array"],
-        config["block_num_array"],
-        config["test_size_array"],
+        config["block_num_array"]
     )
     prepare_run(script_path)
     for (
-        repeat,
         core_id,
         node_id,
-        use_flush,
+        flush_type,
+        ldst_type,
         access_order,
         stride_size,
-        block_num,
-        test_size,
+        block_num
     ) in param_combinations:
         if block_num * stride_size >= test_size:
             continue
         yaml_path = get_workspace_path() / "benchmark" / "basic_performance" / "scripts" / "batch" / "temp.yaml"
         make_yaml_file(
             yaml_path,
+            test_type,
             repeat,
+            use_flush,
             core_id,
             node_id,
-            use_flush,
+            flush_type,
+            ldst_type,
             access_order,
             dimm_phys_addr,
-            dimm_test_size,
+            cxl_phys_addr,
+            test_size,
             stride_size,
             block_num,
-            test_size,
+            socket_num,
+            snc_mode
         )
         run_test(yaml_path, output_path)
         time.sleep(1)

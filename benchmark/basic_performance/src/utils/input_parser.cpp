@@ -111,7 +111,7 @@ std::tuple<std::string, std::string> InputParserForCache::parse(int argc,
 }
 
 void InputParserForCache::parse(const fs::path &input_file,
-                                pchasing_args_t *args) {
+  pchasing_args_t *args) {
   YAML::Node yaml_file = YAML::LoadFile(input_file.string());
   std::cout << "Parsing the input file: " << input_file << "\n";
   args->in_repeat = yaml_file["repeat"].as<uint64_t>();
@@ -119,11 +119,16 @@ void InputParserForCache::parse(const fs::path &input_file,
   args->in_node_id = yaml_file["node_id"].as<uint64_t>();
   args->in_use_flush = yaml_file["use_flush"].as<uint64_t>();
   args->in_access_order = yaml_file["access_order"].as<uint64_t>();
-  args->in_dimm_start_addr_phys =
-      yaml_file["dimm_start_addr_phys"].as<uint64_t>();
-  args->in_dimm_test_size = yaml_file["dimm_test_size"].as<uint64_t>();
+  args->in_dimm_start_addr_phys = yaml_file["dimm_start_addr_phys"].as<uint64_t>();
+  args->in_cxl_start_addr_phys = yaml_file["cxl_start_addr_phys"].as<uint64_t>();
+  args->in_test_size = yaml_file["test_size"].as<uint64_t>();
   args->in_stride_size = yaml_file["stride_size"].as<uint64_t>();
   args->in_block_num = yaml_file["block_num"].as<uint64_t>();
   args->in_test_size = yaml_file["test_size"].as<uint64_t>();
+  args->in_socket_num = yaml_file["socket_num"].as<uint64_t>();
+  args->in_snc_mode = yaml_file["snc_mode"].as<uint64_t>();
+  args->in_flush_type = yaml_file["flush_type"].as<uint64_t>();
+  args->in_ldst_type = yaml_file["ldst_type"].as<uint64_t>();
+  args->in_test_type = yaml_file["test_type"].as<uint64_t>();
   std::cout << "Input file parsed successfully\n";
 }

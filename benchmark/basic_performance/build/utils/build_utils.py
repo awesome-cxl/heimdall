@@ -104,13 +104,13 @@ def load_global_env():
 def clean(build_dir: Path, sudo: bool = False):
     build_dir = build_dir.resolve()
     if os.path.exists(build_dir):
-        run(f"rm -rf {build_dir}", sudo=sudo)
+        run(f"rm -rf {build_dir}", sudo=True)
 
 
 def make_build_dir(build_dir, sudo: bool = False):
     build_dir = build_dir.resolve()
     if not os.path.exists(build_dir):
-        run(f"mkdir -p {build_dir}", sudo=sudo)
+        run(f"mkdir -p {build_dir}", sudo=True)
 
 
 def get_threads_num():
@@ -131,6 +131,7 @@ def run_cmake(build_dir: Path, arch: str, sudo: bool = False):
             raise ValueError(f"Unknown machine type: {arch}")
         core_num_per_socket = get_cpu_number(arch)
         socket_num = get_socket_number(arch)
+        print(f"machine_type: {machine_type}, core_num_per_socket: {core_num_per_socket}, socket_num: {socket_num}")
         run(
             " ".join(
                 [
@@ -140,16 +141,16 @@ def run_cmake(build_dir: Path, arch: str, sudo: bool = False):
                     f"-DMAX_SOCKET_NUM={socket_num}"
                 ]
             ),
-            sudo=sudo,
+            sudo=True,
             pty=True,
         )
         numbers = get_threads_num()
-        run(f"cmake --build . -j{numbers}", sudo=sudo)
+        run(f"cmake --build . -j{numbers}", sudo=True)
 
 
 def run_build(build_dir: Path, arch, sudo=False):
     build_dir = build_dir.resolve()
 
-    clean(build_dir, sudo=sudo)
-    make_build_dir(build_dir, sudo=sudo)
-    run_cmake(build_dir, arch, sudo=sudo)
+    clean(build_dir, sudo=True)
+    make_build_dir(build_dir, sudo=True)
+    run_cmake(build_dir, arch, sudo=True)
