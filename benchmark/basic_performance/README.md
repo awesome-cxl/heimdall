@@ -63,6 +63,66 @@ Configure the bandwidth vs latency test script:
  nano 200_{your test script}.yaml # or reuse 200_cache_heatmap.yaml
 ```
 
+ **Fields**
+ 1. `repeat` configuration:
+    - specify the number of pointer-chasing rounds
+ 2. `test_type` configuration:
+    - `0`: measure load/store operation latency
+    - `1`: measure flush operation latency if `use_flush` is set to `1`
+ 3. `use_flush` configuration:
+    - `0`: no flushing
+    - `1`: flush data after each round of pointer-chasing
+ 4. `flush_type` configuration:
+    - select the type of flush instruction:
+      - `0`: clflush
+      - `1`: clflushopt
+      - `2`: clwb
+ 5. `ldst_type` configuration:
+    - select the type of load/store instruction:
+      - `0`: regular
+      - `1`: non-temporal (will add support soon)
+      - `2`: atomic (will add support soon)
+ 6. `core_id` configuration:
+    - specify the core to run benchmark
+ 7. `node_id` configuration:
+    - specify the accessed memory node
+ 8. `access_order` configuration:
+    - `0`: random pointer-chasing
+    - `1`: sequential pointer-chasing
+ 9. `stride_size_array` configuration:
+    - specify the stride size between two sequential memory blocks
+ 10. `block_num_array` configuration:
+      - specify the number of accessed memory blocks
+
+
+### Cache Analysis Setup Instructions
+
+To ensure accurate and repeatable cache analysis results, we use a pointer-chasing benchmark executed on a contiguous physical address range. Since physical addresses are accessible only in kernel mode, a kernel module is designed to perform the cache analysis.
+
+#### Configuration Steps
+
+1. **Specify Physical Address Ranges**  
+   Before running the cache analysis, define the physical address ranges for both DIMM and CXL memory in the `$(hostname).env` file. Example configuration:
+
+   ```
+   dimm_physical_start_addr=0x800000000  # 32GB
+   cxl_physical_start_addr=0x4080000000  # 258GB
+   test_size=0x840000000  # 33GB (32GB test buffer + 1GB cindex buffer)
+   ```
+
+   - For DIMM memory testing, the physical address range is set from 32GB to 65GB.
+   - For CXL memory testing, the CXL node starts at the physical address 258GB.
+   - To obtain the physical address range of each NUMA node, navigate to the `benchmark/basic_performance/build/cache_test/misc/numa_info` directory and execute the `make` command.
+
+2. **Reserve Physical Address Range**  
+   To prevent system crashes when accessing physical addresses directly, reserve the specified physical address range using the `memmap` kernel boot parameter. For example, add the following to the Linux boot command:
+
+   ```
+   memmap=33G!32G
+   ```
+
+   This reserves a 33GB range starting at 32GB for safe testing.
+
 ## 3. Start the test
 
 For the bandwidth vs latency test

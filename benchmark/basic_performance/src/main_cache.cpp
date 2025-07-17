@@ -79,7 +79,7 @@ int prepare(pchasing_args_t &args, int argc, char *argv[]) {
   }
   
   if (args.in_ldst_type == 0) {
-    ldst_type = "temporal";
+    ldst_type = "regular";
   } else if (args.in_ldst_type == 1) {
     ldst_type = "non-temporal";
   } else if (args.in_ldst_type == 2) {
