@@ -11,6 +11,38 @@ import benchmark.basic_performance.scripts.utils.utils as utils
 app = typer.Typer()
 
 
+def ensure_venv():
+    """Ensure .venv exists, create if not"""
+    if not os.path.exists(".venv"):
+        logger.info("Creating virtual environment...")
+        subprocess.run(["uv", "venv", "--python", "3.12", "--seed"], check=True)
+        logger.info("Virtual environment created successfully")
+    else:
+        logger.info("Virtual environment already exists")
+
+
+def run_in_venv(command, cwd=None):
+    """Run command in virtual environment"""
+    ensure_venv()
+    
+    # Use venv python/bash instead of system ones
+    venv_python = os.path.abspath(".venv/bin/python")
+    venv_bash = os.path.abspath(".venv/bin/bash")
+    
+    if command[0] == "python":
+        command[0] = venv_python
+    elif command[0] == "bash":
+        command[0] = venv_bash
+        # For bash scripts, we need to source the venv activation
+        if len(command) > 1 and command[1].endswith('.sh'):
+            # Create a wrapper command that activates venv and runs the script
+            script_path = command[1]
+            wrapper_cmd = f"source .venv/bin/activate && bash {script_path}"
+            command = ["bash", "-c", wrapper_cmd]
+    
+    subprocess.run(command, check=True, cwd=cwd)
+
+
 def clone_repo(repo_url, clone_dir):
     if not os.path.exists(clone_dir):
         subprocess.run(["git", "clone", repo_url, clone_dir], check=True)
@@ -119,6 +151,13 @@ def setup_vllm_environment(vllm_dir):
         content,
     )
 
+    # Add additional CPU-specific environment variables for v0.9.1+
+    if 'VLLM_DEVICE = ' not in content:
+        content += '\n# Additional CPU environment variables for v0.9.1+\n'
+        content += 'VLLM_DEVICE = "cpu"\n'
+        content += 'VLLM_FORCE_CPU = "1"\n'
+        content += 'CUDA_VISIBLE_DEVICES = ""\n'
+
     with open(setup_envs_file, "w") as f:
         f.write(content)
 
@@ -126,10 +165,11 @@ def setup_vllm_environment(vllm_dir):
     with open(setup_py_file) as file:
         lines = file.readlines()
 
-    # removed_line = lines.pop(539)
-
+    # Fix the indentation issue for CPU condition check
     if len(lines) > 539:
-        lines[539] = lines[539].replace("    ", "", 1)
+        # Make sure the if statement is properly indented within the elif block
+        if "if envs.VLLM_TARGET_DEVICE" in lines[539]:
+            lines[539] = "        if envs.VLLM_TARGET_DEVICE == \"cpu\":\n"
 
     with open(setup_py_file, "w") as file:
         file.writelines(lines)
@@ -176,18 +216,21 @@ def vllm_install_dependencies(machine, vllm_dir):
             )
             subprocess.run(
                 [
+                    "uv",
                     "pip",
                     "install",
                     "-r",
-                    os.path.join(vllm_dir, "requirements-cpu.txt"),
+                    os.path.join(vllm_dir, "requirements", "cpu.txt"),
                     "--extra-index-url",
                     "https://download.pytorch.org/whl/cpu",
+                    "--index-strategy",
+                    "unsafe-best-match",
                 ],
                 check=True,
             )
     elif machine == "apple":
         subprocess.run(
-            ["pip", "install", "-r", os.path.join(vllm_dir, "requirements-cpu.txt")],
+            ["uv", "pip", "install", "-r", os.path.join(vllm_dir, "requirements", "cpu.txt"), "--index-strategy", "unsafe-best-match"],
             check=True,
         )
     else:
@@ -203,7 +246,7 @@ def vllm_download_dataset(dataset_dir):
     subprocess.run(["wget", dataset_url, "-O", dataset_path], check=True)
 
 
-def ensure_vllm_repo(vllm_dir, version="v0.7.3"):
+def ensure_vllm_repo(vllm_dir, version="v0.9.1"):
     repo_url = "https://github.com/vllm-project/vllm.git"
     if not os.path.exists(vllm_dir):
         clone_repo(repo_url, vllm_dir)
@@ -227,10 +270,22 @@ def install_vllm_source(vllm_dir: str, gpu: bool = True):
         vllm_install_dependencies(machine, vllm_dir)
         if machine in ["x86", "arm"]:
             setup_vllm_environment(vllm_dir)
+            # Install additional build dependencies not in requirements
+            logger.info("Installing additional build dependencies...")
             subprocess.run(
-                ["python", os.path.join(vllm_dir, "setup.py"), "install"],
+                ["uv", "pip", "install", "setuptools-scm>=8", "numpy"],
+                check=True,
+            )
+            # Set environment variables for CPU-only build
+            env = os.environ.copy()
+            env["VLLM_TARGET_DEVICE"] = "cpu"
+            env["CUDA_VISIBLE_DEVICES"] = ""
+            env["VLLM_CPU_ONLY"] = "1"
+            subprocess.run(
+                ["uv", "pip", "install", "-e", "."],
                 cwd=vllm_dir,
                 check=True,
+                env=env,
             )
         elif machine == "apple":
             subprocess.run(["pip", "install", "-e", "."], cwd=vllm_dir, check=True)
@@ -239,8 +294,17 @@ def install_vllm_source(vllm_dir: str, gpu: bool = True):
             exit(1)
 
 
+def run_vllm_cpu_install_script():
+    script_path = os.path.join(os.path.dirname(__file__), "scripts", "vllm_cpu_install.sh")
+    if not os.path.exists(script_path):
+        logger.error(f"{script_path} 파일이 존재하지 않습니다.")
+        return
+    run_in_venv(["bash", script_path])
+
+
 @app.command()
 def install(config: str):
+    ensure_venv()
     logger.info("installing")
     # Check if the user is logged into Hugging Face before proceeding
     check_huggingface_login()
@@ -315,6 +379,7 @@ def install(config: str):
             print("Updated model.py: Removed .cuda() calls for CPU inference.")
             subprocess.run(
                 [
+                    "uv",
                     "pip",
                     "install",
                     "-r",
@@ -324,7 +389,7 @@ def install(config: str):
                 ],
                 check=True,
             )
-            subprocess.run(["pip", "install", "-e", "."], check=True)
+            subprocess.run(["uv", "pip", "install", "-e", "."], cwd=pytorch_dir, check=True)
 
         else:
             logger.info(f"{pytorch_dir} already exists. Skipping clone.")
@@ -377,7 +442,7 @@ def install(config: str):
         vllm_dir = os.path.join(cwd, "benchmark/llm_bench", "vllm_cpu")
         ensure_vllm_repo(vllm_dir)
         # install vLLM source for CPU
-        install_vllm_source(vllm_dir, gpu=False)
+        run_vllm_cpu_install_script()
         vllm_download_dataset(dataset_dir)
 
     elif config in ["llamacpp"]:
@@ -432,6 +497,7 @@ def build(config: str):
 
 @app.command()
 def run(config: str):
+    ensure_venv()
     logger.info("Running")
     script_map = {
         "pytorch": "pytorch_run_test.sh",
@@ -444,10 +510,10 @@ def run(config: str):
     if config == "all":
         for script in script_map.values():
             script_path = os.path.join(base_dir, script)
-            subprocess.run(["bash", script_path], check=True)
+            run_in_venv(["bash", script_path])
     elif config in script_map:
         script_path = os.path.join(base_dir, script_map[config])
-        subprocess.run(["bash", script_path], check=True)
+        run_in_venv(["bash", script_path])
     else:
         logger.error(f"this is the unknown task: {config}")
     pass
@@ -455,12 +521,13 @@ def run(config: str):
 
 @app.command()
 def plot(config: str):
+    ensure_venv()
     logger.info("plotting")
     src_dir = os.path.join(os.path.dirname(__file__), "src")
     plot_script = os.path.join(src_dir, "plot_maker.py")
     
     if os.path.exists(plot_script):
-        subprocess.run(["python", plot_script], check=True)
+        run_in_venv(["python", plot_script])
         logger.info("Plot generation completed")
     else:
         logger.error(f"Plot script not found: {plot_script}")
