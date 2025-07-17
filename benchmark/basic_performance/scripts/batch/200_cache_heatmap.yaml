@@ -1,11 +1,11 @@
 job_id: 200 # enum class JobId : uint32_t  @ src/core/system_define.h
-test_type: 0 # 0: measure access latency, 1: measure flush latency
 repeat: 32
-use_flush: 0 # 0: no flush, 1: use flush after one round of access
+test_type: 0 # 0: measure access latency, 1: measure flush latency
+use_flush: 0 # 0: no flush, 1: flush after one round of access
+flush_type: [0] # 0: clflush, 1: clflushopt, 2: clwb
+ldst_type: [0] # 0: regular # TODO: add support for 1: non-temporal, 2: atomic
 core_id: [0, 20] # two cores on the different sockets
 node_id: [2] # access memory on node_id
-flush_type: [0] # 0: clflush, 1: clflushopt, 2: clwb
-ldst_type: [0] # 0: temporal # TODO: add support for 1: non-temporal, 2: atomic
 access_order: [0] # 0: random, 1: sequential
 stride_size_array: [0x40, 0x80, 0x100, 0x200, 
                     0x400, 0x800, 0x1000, 0x2000,
