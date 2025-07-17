@@ -15,7 +15,14 @@ LLM benchmark module for heimdall. This module allows you to measure and compare
    huggingface-cli login
    ```
 
-2. **Basic Package Installation**
+2. **Meta Llama Model Access (for GPU benchmarks)**
+   - Visit [Meta Llama 3 Model Card](https://huggingface.co/meta-llama/Meta-Llama-3-70B)
+   - Accept the license terms and request access
+   - Approval is required only once per Hugging Face account
+   - GPU benchmarks use Meta-Llama-3-70B (requires approval)
+   - CPU benchmarks use Meta-Llama-3-8B (requires approval)
+
+3. **Basic Package Installation**
    ```bash
    # Ubuntu/Debian
    sudo apt-get update

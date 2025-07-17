@@ -200,7 +200,7 @@ def vllm_install_dependencies(machine, vllm_dir):
         )
 
         if machine == "x86":
-            subprocess.run(["pip", "install", "--upgrade", "pip"], check=True)
+            subprocess.run(["uv", "pip", "install", "--upgrade", "pip"], check=True)
             subprocess.run(
                 [
                     "pip",
@@ -264,7 +264,9 @@ def install_vllm_source(vllm_dir: str, gpu: bool = True):
 
     # GPU install path
     if gpu:
-        subprocess.run(["pip", "install", "vllm"], check=True)
+        subprocess.run(["uv", "pip", "install", "vllm"], check=True)
+        # Install datasets package required for benchmarks
+        subprocess.run(["uv", "pip", "install", "datasets"], check=True)
     else:
         machine = utils.get_architecture()
         vllm_install_dependencies(machine, vllm_dir)
@@ -288,7 +290,7 @@ def install_vllm_source(vllm_dir: str, gpu: bool = True):
                 env=env,
             )
         elif machine == "apple":
-            subprocess.run(["pip", "install", "-e", "."], cwd=vllm_dir, check=True)
+            subprocess.run(["uv", "pip", "install", "-e", "."], cwd=vllm_dir, check=True)
         else:
             logger.error(f"Unsupported machine type for CPU install: {machine}")
             exit(1)
