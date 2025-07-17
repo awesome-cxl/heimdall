@@ -7,6 +7,8 @@
 # Set environment variables for CPU KV cache space and LD_PRELOAD
 export VLLM_CPU_KVCACHE_SPACE=30
 export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4:$LD_PRELOAD
+export CUDA_VISIBLE_DEVICES=""
+export VLLM_DEVICE=cpu
 
 HUGGING_FACE_HUB_TOKEN=$(cat ~/.cache/huggingface/token)
 export HUGGING_FACE_HUB_TOKEN
@@ -26,7 +28,7 @@ descriptions=(
 	"CPU 1, Node 2 (Remote CXL)"
 )
 
-VLLM_PATH="benchmark/llm_bench/vllm"
+VLLM_PATH="benchmark/llm_bench/vllm_cpu"
 MODEL="meta-llama/Meta-Llama-3-8B"
 DATASET="benchmark/llm_bench/datasets/ShareGPT_V3_unfiltered_cleaned_split.json"
 LOG_DIR="benchmark/llm_bench/logs/vllm"
@@ -68,7 +70,8 @@ vllm() {
 	"${numa_cmd[@]}" python "$VLLM_PATH/benchmarks/benchmark_throughput.py" \
 		--model "$MODEL" \
 		--dataset "$DATASET" \
-		--output-json "$output_json"
+		--output-json "$output_json" \
+		--device cpu
 
 	sleep 2
 }
