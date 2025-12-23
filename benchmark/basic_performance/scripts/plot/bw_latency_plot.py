@@ -28,7 +28,13 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from loguru import logger
+try:
+    from loguru import logger  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
 
 # Define plotting functions
@@ -89,6 +95,97 @@ def plot_threads_vs_latency_and_save(df, output_file, title_prefix):
     plt.savefig(output_file)
     plt.close()
 
+def plot_threads_vs_bw_latency_and_save(df, output_file, title_prefix):
+    # Combined plot:
+    # - X axis: Number of Threads
+    # - Left Y axis (blue): Bandwidth
+    # - Right Y axis (red): Latency
+    grouped = df.groupby(["Access Type"])
+    access_types = list(grouped.groups.keys())
+
+    fig, ax_bw = plt.subplots(figsize=(10, 6))
+    ax_lat = ax_bw.twinx()
+
+    bw_handles = []
+    lat_handles = []
+    legend_labels = []
+
+    single_access_type = len(access_types) == 1
+
+    for (access_type), group in grouped:
+        group_sorted = group.sort_values("Threads")
+        threads = group_sorted["Threads"]
+        bandwidth = group_sorted["Total Bandwidth (MiB/s)"] / 1024  # GiB/s
+        latency = group_sorted["Measured Latency (ns)"]
+
+        if single_access_type:
+            (bw_line,) = ax_bw.plot(
+                threads,
+                bandwidth,
+                marker="o",
+                linestyle="-",
+                linewidth=3,
+                color="tab:blue",
+            )
+            (lat_line,) = ax_lat.plot(
+                threads,
+                latency,
+                marker="x",
+                linestyle="--",
+                linewidth=3,
+                color="tab:red",
+            )
+            bw_handles.append(bw_line)
+            lat_handles.append(lat_line)
+            legend_labels.extend(["Bandwidth", "Latency"])
+        else:
+            # Keep a consistent color per access_type across both axes.
+            (bw_line,) = ax_bw.plot(
+                threads,
+                bandwidth,
+                marker="o",
+                linestyle="-",
+                linewidth=2,
+            )
+            color = bw_line.get_color()
+            (lat_line,) = ax_lat.plot(
+                threads,
+                latency,
+                marker="x",
+                linestyle="--",
+                linewidth=2,
+                color=color,
+            )
+
+            bw_handles.append(bw_line)
+            lat_handles.append(lat_line)
+            legend_labels.append(f"{access_type} BW")
+            legend_labels.append(f"{access_type} Lat")
+
+    ax_bw.set_title(f"{title_prefix}: Threads vs Bandwidth & Latency")
+    ax_bw.set_xlabel("Number of Threads")
+    ax_bw.set_ylabel("Bandwidth (GiB/s)", color="tab:blue")
+    ax_lat.set_ylabel("Latency (ns)", color="tab:red")
+    ax_lat.set_ylim(0, 2500)
+
+    ax_bw.tick_params(axis="y", labelcolor="tab:blue")
+    ax_lat.tick_params(axis="y", labelcolor="tab:red")
+    ax_bw.grid(True)
+
+    # Legend
+    if bw_handles and lat_handles:
+        if single_access_type:
+            ax_bw.legend([bw_handles[0], lat_handles[0]], legend_labels[:2], loc="best")
+        else:
+            handles = []
+            for i in range(len(bw_handles)):
+                handles.append(bw_handles[i])
+                handles.append(lat_handles[i])
+            ax_bw.legend(handles, legend_labels, loc="best")
+
+    fig.tight_layout()
+    fig.savefig(output_file)
+    plt.close(fig)
 
 def plot_bw_latency(base_dir):
     file_path = base_dir + "/parsed_result_logs.csv"
@@ -105,12 +202,14 @@ def plot_bw_latency(base_dir):
         "bandwidth_vs_latency": os.path.join(output_dir, "load_bandwidth_vs_latency_plot.pdf"),
         "threads_vs_bandwidth": os.path.join(output_dir, "load_threads_vs_bandwidth_plot.pdf"),
         "threads_vs_latency": os.path.join(output_dir, "load_threads_vs_latency_plot.pdf"),
+        "threads_vs_bw_latency": os.path.join(output_dir, "load_threads_vs_bw_latency_plot.pdf"),
     }
 
     store_output_files = {
         "bandwidth_vs_latency": os.path.join(output_dir, "store_bandwidth_vs_latency_plot.pdf"),
         "threads_vs_bandwidth": os.path.join(output_dir, "store_threads_vs_bandwidth_plot.pdf"),
         "threads_vs_latency": os.path.join(output_dir, "store_threads_vs_latency_plot.pdf"),
+        "threads_vs_bw_latency": os.path.join(output_dir, "store_threads_vs_bw_latency_plot.pdf"),
     }
 
     if load_data.empty:
@@ -119,6 +218,7 @@ def plot_bw_latency(base_dir):
         plot_bandwidth_vs_latency_and_save(load_data, load_output_files["bandwidth_vs_latency"], "LOAD")
         plot_threads_vs_bandwidth_and_save(load_data, load_output_files["threads_vs_bandwidth"], "LOAD")
         plot_threads_vs_latency_and_save(load_data, load_output_files["threads_vs_latency"], "LOAD")
+        plot_threads_vs_bw_latency_and_save(load_data, load_output_files["threads_vs_bw_latency"], "LOAD")
 
     if store_data.empty:
         logger.info("No STORE data found.")
@@ -126,3 +226,4 @@ def plot_bw_latency(base_dir):
         plot_bandwidth_vs_latency_and_save(store_data, store_output_files["bandwidth_vs_latency"], "STORE")
         plot_threads_vs_bandwidth_and_save(store_data, store_output_files["threads_vs_bandwidth"], "STORE")
         plot_threads_vs_latency_and_save(store_data, store_output_files["threads_vs_latency"], "STORE")
+        plot_threads_vs_bw_latency_and_save(store_data, store_output_files["threads_vs_bw_latency"], "STORE")
