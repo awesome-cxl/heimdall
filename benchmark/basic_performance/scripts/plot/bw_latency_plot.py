@@ -25,16 +25,11 @@
 #
 
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import pandas as pd
-try:
-    from loguru import logger  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover
-    import logging
-
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 # Define plotting functions
@@ -52,6 +47,7 @@ def plot_bandwidth_vs_latency_and_save(df, output_file, title_prefix):
     plt.title(f"{title_prefix}: Measured Latency vs Total Bandwidth")
     plt.xlabel("Total Bandwidth (GiB/s)")
     plt.ylabel("Measured Latency (ns)")
+    plt.ylim(0, 2500)
     plt.legend()
     plt.grid(True)
     plt.savefig(output_file)
@@ -167,6 +163,7 @@ def plot_threads_vs_bw_latency_and_save(df, output_file, title_prefix):
     ax_bw.set_ylabel("Bandwidth (GiB/s)", color="tab:blue")
     ax_lat.set_ylabel("Latency (ns)", color="tab:red")
     ax_lat.set_ylim(0, 2500)
+    ax_bw.set_ylim(0, 80)
 
     ax_bw.tick_params(axis="y", labelcolor="tab:blue")
     ax_lat.tick_params(axis="y", labelcolor="tab:red")
@@ -227,3 +224,34 @@ def plot_bw_latency(base_dir):
         plot_threads_vs_bandwidth_and_save(store_data, store_output_files["threads_vs_bandwidth"], "STORE")
         plot_threads_vs_latency_and_save(store_data, store_output_files["threads_vs_latency"], "STORE")
         plot_threads_vs_bw_latency_and_save(store_data, store_output_files["threads_vs_bw_latency"], "STORE")
+
+
+def _main(argv: list[str]) -> int:
+    if len(argv) < 2:
+        logger.error(
+            "Usage: python bw_latency_plot.py <result_dir_1> [<result_dir_2> ...]\n"
+            "Each result_dir must contain parsed_result_logs.csv"
+        )
+        return 2
+
+    had_error = False
+    for base_dir in argv[1:]:
+        base_dir = os.path.abspath(base_dir)
+        csv_path = os.path.join(base_dir, "parsed_result_logs.csv")
+        if not os.path.exists(csv_path):
+            logger.error(f"Missing parsed_result_logs.csv: {csv_path}")
+            had_error = True
+            continue
+
+        logger.info(f"Plotting from: {csv_path}")
+        try:
+            plot_bw_latency(base_dir)
+        except Exception as e:
+            logger.exception(f"Failed to plot for {base_dir}: {e}")
+            had_error = True
+
+    return 1 if had_error else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_main(sys.argv))
