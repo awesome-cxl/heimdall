@@ -106,7 +106,11 @@ def run_test(script_path, output_path):
     batchutils.make_dir(script_path, output_path)
     bin_path = get_bin_path()
     cmd = f"{bin_path} -f {script_path} -o {output_path}"
-    run_as_sudo(cmd)
+    result = run_as_sudo(cmd)
+    if result is not None and result.exited != 0:
+        if result.exited == 130:
+            raise KeyboardInterrupt
+        raise RuntimeError(f"Command failed with exit code {result.exited}: {cmd}")
     pass
 
 
@@ -217,38 +221,47 @@ def run_cache_test(script_path, output_path):
         config["block_num_array"]
     )
     prepare_run(script_path)
-    for (
-        core_id,
-        node_id,
-        flush_type,
-        ldst_type,
-        access_order,
-        stride_size,
-        block_num
-    ) in param_combinations:
-        if block_num * stride_size >= test_size:
-            continue
-        yaml_path = get_workspace_path() / "benchmark" / "basic_performance" / "scripts" / "batch" / "temp.yaml"
-        make_yaml_file(
-            yaml_path,
-            test_type,
-            repeat,
-            use_flush,
+    try:
+        for (
             core_id,
             node_id,
             flush_type,
             ldst_type,
             access_order,
-            dimm_phys_addr,
-            cxl_phys_addr,
-            test_size,
             stride_size,
-            block_num,
-            socket_num,
-            snc_mode
-        )
-        run_test(yaml_path, output_path)
-        time.sleep(1)
-    wrap_up_run(script_path)
-    check_and_remove_module("pointer_chasing")
-    remove_kernel_file()
+            block_num
+        ) in param_combinations:
+            if block_num * stride_size >= test_size:
+                continue
+            yaml_path = get_workspace_path() / "benchmark" / "basic_performance" / "scripts" / "batch" / "temp.yaml"
+            make_yaml_file(
+                yaml_path,
+                test_type,
+                repeat,
+                use_flush,
+                core_id,
+                node_id,
+                flush_type,
+                ldst_type,
+                access_order,
+                dimm_phys_addr,
+                cxl_phys_addr,
+                test_size,
+                stride_size,
+                block_num,
+                socket_num,
+                snc_mode
+            )
+            run_test(yaml_path, output_path)
+            time.sleep(1)
+    except KeyboardInterrupt:
+        logger.warning("Interrupted cache batch run. Cleaning up the kernel module and restoring machine state.")
+        raise
+    finally:
+        try:
+            wrap_up_run(script_path)
+        finally:
+            try:
+                check_and_remove_module("pointer_chasing")
+            finally:
+                remove_kernel_file()

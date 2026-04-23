@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <utils/input_parser.h>
@@ -41,18 +42,21 @@
 #define PCH_IOC_STOP    _IO(PCH_IOC_MAGIC, 2)
 
 static int fd = -1;
+static volatile sig_atomic_t stop_requested = 0;
 
 void signal_handler(int sig) {
-  if (sig == SIGINT) {
-      printf("Caught Ctrl+C, stopping thread...\n");
-      if (fd >= 0) {
-          if (ioctl(fd, PCH_IOC_STOP) < 0) {
-              perror("ioctl PCH_IOC_STOP failed");
-          }
-          close(fd);
-      }
-      exit(0);
+  if (sig == SIGINT || sig == SIGTERM) {
+      stop_requested = 1;
   }
+}
+
+void install_signal_handlers() {
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = signal_handler;
+  sigemptyset(&sa.sa_mask);
+  sigaction(SIGINT, &sa, nullptr);
+  sigaction(SIGTERM, &sa, nullptr);
 }
 
 int prepare(pchasing_args_t &args, int argc, char *argv[]) {
@@ -147,24 +151,37 @@ void wrap_up(int fd, pchasing_args_t &args) {
 }
 
 int main(int argc, char *argv[]) {
-  signal(SIGINT, signal_handler);
+  install_signal_handlers();
 
   pchasing_args_t args;
   memset(&args, 0, sizeof(args));
   fd = prepare(args, argc, argv);
+  if (fd < 0) {
+    return 1;
+  }
 
   uint64_t region_skip = args.in_block_num * args.in_stride_size;
   if (region_skip >= args.in_test_size) {
+    close(fd);
+    fd = -1;
     return -1;
   }
 
   int ret = ioctl(fd, PCH_IOC_RUN, &args);
   if (ret < 0) {
+    if (stop_requested && errno == EINTR) {
+      fprintf(stderr, "Interrupted, stopping the current cache run.\n");
+      close(fd);
+      fd = -1;
+      return 130;
+    }
     perror("ioctl PCH_IOC_RUN");
     close(fd);
+    fd = -1;
     return 1;
   }
   wrap_up(fd, args);
+  fd = -1;
 
   return 0;
 }

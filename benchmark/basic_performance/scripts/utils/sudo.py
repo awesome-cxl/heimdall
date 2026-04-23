@@ -46,4 +46,4 @@ def run_as_sudo(cmd: str):
     if HOST_PASSWORD == "unknown_host":
         logger.error("Please set the user password from env 'USER_PASSWORD' and callHeimdall again")
         raise typer.Exit(1)
-    sudo(cmd, echo=True, pty=False, warn=True, watchers=[sudo_pass_responder])
+    return sudo(cmd, echo=True, pty=False, warn=True, watchers=[sudo_pass_responder])

@@ -80,6 +80,14 @@ typedef struct pchasing_args {
 static struct task_struct *pch_thread;
 static struct completion pch_comp;
 
+static inline int pch_stop_requested(uint64_t iter)
+{
+  if (unlikely((iter & 0x3ffULL) == 0 && kthread_should_stop())) {
+    return -EINTR;
+  }
+  return 0;
+}
+
 static inline __attribute__((always_inline)) uint64_t pch_rdtscp(void)
 {
   uint32_t lo, hi;
@@ -154,7 +162,14 @@ static int init_chasing_index(uint64_t *cindex, uint64_t csize, uint64_t access_
 
     if (access_order == 0) {
         for (i = 0; i < csize - 1; i++) {
+            ret = pch_stop_requested(i);
+            if (ret != 0) {
+                return ret;
+            }
             do {
+                if (unlikely(kthread_should_stop())) {
+                    return -EINTR;
+                }
                 ret = get_rand(&next_pos, csize);
                 if (ret != 0)
                     return 1;
@@ -166,6 +181,10 @@ static int init_chasing_index(uint64_t *cindex, uint64_t csize, uint64_t access_
     }
     else {
         for (i = 0; i < csize - 1; i++) {
+            ret = pch_stop_requested(i);
+            if (ret != 0) {
+                return ret;
+            }
             next_pos = curr_pos + 1;
             cindex[curr_pos] = next_pos;
             curr_pos++;
@@ -175,7 +194,7 @@ static int init_chasing_index(uint64_t *cindex, uint64_t csize, uint64_t access_
   return 0;
 }
 
-static void pointer_chasing_reset(uint64_t *base_addr,
+static int pointer_chasing_reset(uint64_t *base_addr,
                           uint64_t block_num,
                           uint64_t stride_size,
                           uint64_t *cindex)
@@ -183,16 +202,20 @@ static void pointer_chasing_reset(uint64_t *base_addr,
   uint64_t accessed_block_num = 0;
   uint64_t curr_pos = 0;
   while (accessed_block_num < block_num) {
+      if (pch_stop_requested(accessed_block_num) != 0) {
+          return -EINTR;
+      }
       uint64_t *curr_addr = (uint64_t *)((uint64_t)base_addr + curr_pos * stride_size);
 
       *curr_addr = 0;
 
       curr_pos = cindex[curr_pos];
       accessed_block_num++;
-  } 
+  }
+  return 0;
 }
 
-static void pointer_chasing_store(uint64_t *base_addr,
+static int pointer_chasing_store(uint64_t *base_addr,
                           uint64_t block_num,
                           uint64_t stride_size,
                           uint64_t repeat,
@@ -209,7 +232,14 @@ static void pointer_chasing_store(uint64_t *base_addr,
       uint64_t accessed_block_num = 0;
       uint64_t curr_pos = 0;
       uint64_t next_pos = 0;
+
+      if (unlikely(kthread_should_stop())) {
+          return -EINTR;
+      }
       while (accessed_block_num < block_num) {
+          if (pch_stop_requested(accessed_block_num) != 0) {
+              return -EINTR;
+          }
           uint64_t *curr_addr = (uint64_t *)((uint64_t)base_addr + curr_pos * stride_size);
           next_pos = cindex[curr_pos];
 
@@ -243,6 +273,9 @@ static void pointer_chasing_store(uint64_t *base_addr,
               start = pch_rdtscp();
           }
           while (accessed_block_num < block_num) {
+              if (pch_stop_requested(accessed_block_num) != 0) {
+                  return -EINTR;
+              }
               uint64_t *curr_addr = (uint64_t *)((uint64_t)base_addr + curr_pos * stride_size);
               if (flush_type == 0) pch_clflush(curr_addr);
               else if (flush_type == 1) pch_clflushopt(curr_addr);
@@ -258,9 +291,10 @@ static void pointer_chasing_store(uint64_t *base_addr,
           }
       }
   }
+  return 0;
 }
 
-static void pointer_chasing_load(uint64_t *base_addr,
+static int pointer_chasing_load(uint64_t *base_addr,
                           uint64_t block_num,
                           uint64_t stride_size,
                           uint64_t repeat,
@@ -277,7 +311,14 @@ static void pointer_chasing_load(uint64_t *base_addr,
       uint64_t accessed_block_num = 0;
       uint64_t curr_pos = 0;
       uint64_t next_pos = 0;
+
+      if (unlikely(kthread_should_stop())) {
+          return -EINTR;
+      }
       while (accessed_block_num < block_num) {
+          if (pch_stop_requested(accessed_block_num) != 0) {
+              return -EINTR;
+          }
           uint64_t *curr_addr = (uint64_t *)((uint64_t)base_addr + curr_pos * stride_size);
 
           pch_mfence();
@@ -310,6 +351,9 @@ static void pointer_chasing_load(uint64_t *base_addr,
               start = pch_rdtscp();
           }
           while (accessed_block_num < block_num) {
+              if (pch_stop_requested(accessed_block_num) != 0) {
+                  return -EINTR;
+              }
               uint64_t *curr_addr = (uint64_t *)((uint64_t)base_addr + curr_pos * stride_size);
               if (flush_type == 0) pch_clflush(curr_addr);
               else if (flush_type == 1) pch_clflushopt(curr_addr);
@@ -325,6 +369,7 @@ static void pointer_chasing_load(uint64_t *base_addr,
           }
       }
   }
+  return 0;
 }
 
 
@@ -363,6 +408,7 @@ static int pointer_chasing_thread(void *data)
   uint64_t start_cycle_st, end_cycle_st, start_cycle_ld, end_cycle_ld;
   uint64_t start_ns_st, end_ns_st, start_ns_ld, end_ns_ld;
   uint64_t sum_st = 0, sum_ld = 0;
+  int ret = 0;
 
   pr_info("%s: number of online NUMA nodes: %d\n", __func__, online_numa_node_count);
 
@@ -375,8 +421,8 @@ static int pointer_chasing_thread(void *data)
 
   if (!node_online(node_id)) {
     pr_err("Node %llu is not online or does not exist.\n", node_id);
-    complete(&pch_comp);
-    return -ENODEV;
+    ret = -ENODEV;
+    goto out_complete;
   }
 
   pr_info("%s: started pointer-chasing on CPU [%llu] and NUMA node [%llu]\n", __func__, core_id, node_id);
@@ -386,13 +432,13 @@ static int pointer_chasing_thread(void *data)
       base_addr_virt = phys_to_virt(base_addr_phys);
   }
   else if (node_id == cxl_mem_node) {
-      base_addr_phys = cxl_start_addr_phys + (1ULL<<30ULL);
+      base_addr_phys = cxl_start_addr_phys;
       base_addr_virt = phys_to_virt(base_addr_phys);
   }
   else {
       pr_err("pointer-chasing is not supported on this node.\n");
-      complete(&pch_comp);
-      return -EINVAL;
+      ret = -EINVAL;
+      goto out_complete;
   }
   
   pr_info("%s: phys_addr: 0x%llx, virt_addr: 0x%llx, size: 0x%llx\n", __func__, base_addr_phys, (uint64_t)base_addr_virt, test_size);
@@ -400,6 +446,10 @@ static int pointer_chasing_thread(void *data)
   /* fill page tables */
   pages = roundup(2 * region_skip, PAGE_SIZE) >> PAGE_SHIFT;
   for (i = 0; i < pages; i++) {
+    ret = pch_stop_requested(i);
+    if (ret != 0) {
+      goto out_complete;
+    }
     buf  = (uint64_t *)base_addr_virt + (i << PAGE_SHIFT);
     hash = hash ^ *buf;
   }
@@ -410,23 +460,21 @@ static int pointer_chasing_thread(void *data)
 
   if (!timing_ld || !timing_st) {
       pr_err("kmalloc failed.\n");
-      kfree(timing_st);
-      kfree(timing_ld);
-      complete(&pch_comp);
-      return -ENOMEM;
+      ret = -ENOMEM;
+      goto out_cleanup;
   }
 
   memset(cindex, 0, sizeof(uint64_t)*block_num);
   memset(timing_st, 0, sizeof(uint64_t)*repeat);
   memset(timing_ld, 0, sizeof(uint64_t)*repeat);
 
-  if (init_chasing_index(cindex, block_num, access_order) != 0) {
+  ret = init_chasing_index(cindex, block_num, access_order);
+  if (ret != 0) {
       pr_err("init_chasing_index failed.\n");
-      memset(cindex, 0, sizeof(uint64_t)*block_num);
-      kfree(timing_st);
-      kfree(timing_ld);
-      complete(&pch_comp);
-      return -EFAULT;
+      if (ret > 0) {
+        ret = -EFAULT;
+      }
+      goto out_cleanup;
   }
   pr_info("%s: finished cindex generation.\n", __func__);
 
@@ -435,7 +483,10 @@ static int pointer_chasing_thread(void *data)
   pch_mfence();
   start_cycle_st = pch_rdtscp();
   start_ns_st = ktime_get_ns();
-  pointer_chasing_store(test_buf, block_num, stride_size, repeat, cindex, timing_st, use_flush, flush_type, test_type, ldst_type);
+  ret = pointer_chasing_store(test_buf, block_num, stride_size, repeat, cindex, timing_st, use_flush, flush_type, test_type, ldst_type);
+  if (ret != 0) {
+    goto out_cleanup;
+  }
   pch_mfence();
   end_cycle_st = pch_rdtscp();
   end_ns_st = ktime_get_ns();
@@ -445,7 +496,10 @@ static int pointer_chasing_thread(void *data)
   pch_mfence();
   start_cycle_ld = pch_rdtscp();
   start_ns_ld = ktime_get_ns();
-  pointer_chasing_load(test_buf, block_num, stride_size, repeat, cindex, timing_ld, use_flush, flush_type, test_type, ldst_type);
+  ret = pointer_chasing_load(test_buf, block_num, stride_size, repeat, cindex, timing_ld, use_flush, flush_type, test_type, ldst_type);
+  if (ret != 0) {
+    goto out_cleanup;
+  }
   pch_mfence();
   end_cycle_ld = pch_rdtscp();
   end_ns_ld = ktime_get_ns();
@@ -463,21 +517,32 @@ static int pointer_chasing_thread(void *data)
   args->out_total_ns_st = end_ns_st - start_ns_st;
   args->out_total_ns_ld = end_ns_ld - start_ns_ld;
 
-  pointer_chasing_reset((uint64_t *)base_addr_virt, block_num, stride_size, cindex);
+  ret = pointer_chasing_reset((uint64_t *)base_addr_virt, block_num, stride_size, cindex);
+  if (ret != 0) {
+    goto out_cleanup;
+  }
   // pr_info("%s: finished reset pointer-chasing.\n", __func__);
 
+out_cleanup:
   memset(cindex, 0, sizeof(uint64_t)*block_num);
   kfree(timing_st);
   kfree(timing_ld);
+
+out_complete:
   complete(&pch_comp);
-  pr_info("%s: finished pointer-chasing\n", __func__);
-  return 0;
+  if (ret == 0) {
+    pr_info("%s: finished pointer-chasing\n", __func__);
+  } else if (ret == -EINTR) {
+    pr_info("%s: interrupted by stop request\n", __func__);
+  }
+  return ret;
 }
 
 static long pointer_chasing_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
   pchasing_args_t karg;
   int ret;
+  int wait_ret;
 
   if (_IOC_TYPE(cmd) != PCH_IOC_MAGIC) {
       pr_err("Invalid magic number.\n");
@@ -519,9 +584,24 @@ static long pointer_chasing_ioctl(struct file *file, unsigned int cmd, unsigned 
       kthread_bind(pch_thread, (int)karg.in_core_id);
       wake_up_process(pch_thread);
       // wait_for_completion(&pch_comp);
-      ret = wait_for_completion_interruptible(&pch_comp);
-      kthread_stop(pch_thread);
+      wait_ret = wait_for_completion_interruptible(&pch_comp);
+      if (wait_ret < 0) {
+          pr_info("%s: interrupted while waiting for pointer-chasing thread.\n", __func__);
+      }
+
+      ret = kthread_stop(pch_thread);
       pch_thread = NULL;
+      if (wait_ret < 0) {
+          return wait_ret;
+      }
+      if (ret == -EINTR) {
+          pr_info("%s: pointer_chasing_thread stopped by request.\n", __func__);
+          return -EINTR;
+      }
+      if (ret < 0) {
+          pr_err("%s: pointer_chasing_thread failed: %d\n", __func__, ret);
+          return ret;
+      }
       pr_info("%s: pointer_chasing_thread finished.\n", __func__);
 
       if (copy_to_user((void __user *)arg, &karg, sizeof(karg))) {
